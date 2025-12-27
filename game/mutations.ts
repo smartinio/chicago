@@ -34,6 +34,13 @@ export const mutate = {
     game.round.phase = 'over'
     game.dealer = getPlayerNextTo(game.dealer, game)
     game.currentPlayer = getPlayerNextTo(game.dealer, game)
+
+    // Check for winner: must have 52+ points AND have taken Chicago at least once
+    const winner = game.players.some((p) => p.score >= 52 && p.takenChicago)
+
+    if (winner) {
+      mutate.finishGame({ game })
+    }
   },
 
   playCard: ({ trick, player, card }: PlayedCard & { trick: Trick }) => {
@@ -62,7 +69,7 @@ export const mutate = {
         return player
       }
 
-      mutate.markCycleIndex({ game, index: playerIndex })
+      mutate.maybeMarkCycleIndex({ game, index: playerIndex })
     }
   },
 
@@ -102,7 +109,7 @@ export const mutate = {
     const { game, player } = params
     for (const p of game.players) {
       if (p.id !== player.id) {
-        player.score = 0
+        p.score = 0
       }
     }
   },
@@ -122,10 +129,12 @@ export const mutate = {
     return cycle
   },
 
-  markCycleIndex: (params: { game: Game; index: number }) => {
+  maybeMarkCycleIndex: (params: { game: Game; index: number }) => {
     const { game, index } = params
-    const cycle = last(game.round.throwCycles)!
-    cycle[index] = true
+    const cycle = last(game.round.throwCycles)
+    if (cycle) {
+      cycle[index] = true
+    }
   },
 
   setChicagoCaller: (params: { game: Game; player: Player }) => {
