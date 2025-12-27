@@ -1,12 +1,4 @@
-import {
-  Box,
-  Button,
-  Flex,
-  HStack,
-  SlideFade,
-  useDisclosure,
-  useMediaQuery,
-} from '@chakra-ui/react'
+import { Box, Button, Flex, HStack, SlideFade, VStack } from '@chakra-ui/react'
 import {
   DndContext,
   DragEndEvent,
@@ -25,54 +17,50 @@ import { useSnapshot } from 'store'
 import { dataHandler } from 'utils/data'
 import { sortBySuitAndValue } from 'utils/sort'
 import { trpc } from 'utils/trpc'
-import { ChoosePartnerModal } from 'views/ChoosePartnerModal'
 import { PlayingCard } from 'views/PlayingCard'
 
 export const MyHand = () => {
   const { snapshot } = useSnapshot()
-  const [selectedCard, setSelectedCard] = useState<Card>()
+  const [selectedCards, setSelectedCards] = useState<Card[]>([])
   const [pendingDropCard, setPendingDropCard] = useState<Card>()
   const [minHeight, setMinHeight] = useState(0)
   const [shouldFadeIn, setShouldFadeIn] = useState(false)
-  const [maxHeight, setMaxHeight] = useState<number>()
   const ref = useRef<HTMLDivElement>(null)
-  const modal = useDisclosure()
 
   const mutationOptions = { onSuccess: dataHandler(() => {}, handleError) }
-  const playBindingTrickMutation = trpc.playBindingTrick.useMutation(mutationOptions)
-  const playRegularTrickMutation = trpc.playCard.useMutation(mutationOptions)
+  const throwCardsMutation = trpc.throwCards.useMutation(mutationOptions)
+  const playCardMutation = trpc.playCard.useMutation(mutationOptions)
+  const answerChicagoMutation = trpc.answerChicago.useMutation(mutationOptions)
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 1 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 1 } })
   const sensors = useSensors(touchSensor, mouseSensor)
-  const [isMobile] = useMediaQuery('(max-width: 600px)')
 
   useEffect(() => {
     switch (snapshot?.roundPhase) {
-      case 'bidding':
+      case 'asking_chicago':
+      case 'asking_four_of_a_kind':
+      case 'asking_one_open':
       case 'killed':
       case 'over':
-        setSelectedCard(undefined)
+        setSelectedCards([])
     }
   }, [snapshot?.roundPhase])
 
   useEffect(() => {
     const clientHeight = ref.current?.clientHeight || 0
-    if (clientHeight !== minHeight && snapshot?.roundPhase === 'bidding') {
+    if (clientHeight !== minHeight && snapshot?.roundPhase === 'throwing') {
       setMinHeight(clientHeight)
     }
   }, [minHeight, snapshot?.roundPhase])
 
   useEffect(() => {
     let timeout = setTimeout(() => {
-      if (snapshot?.roundPhase === 'bidding') {
-        setMaxHeight(minHeight)
-      }
       setShouldFadeIn(true)
     }, 1000)
 
     return () => clearTimeout(timeout)
-  }, [minHeight, snapshot?.roundPhase])
+  }, [])
 
   if (!snapshot) {
     return null
@@ -93,7 +81,7 @@ export const MyHand = () => {
       }
     }
 
-    if (selectedCard?.id !== cardId) {
+    if (!selectedCards.some((c) => c.id === cardId)) {
       return {
         transition,
         userSelect,
@@ -108,18 +96,30 @@ export const MyHand = () => {
     }
   }
 
-  const getButtonStyle = (cardId: string) => {
-    const transition = 'all 0.2s ease'
+  const getPlayButtonStyle = () => {
+    const opacity = (() => {
+      if (!snapshot?.isMyTurn) {
+        return 0
+      }
 
-    if (selectedCard?.id !== cardId) {
-      return {
-        transition,
-        opacity: 0,
-      } as const
-    }
+      if (selectedCards.length > 0) {
+        return 1
+      }
+
+      return 0
+    })()
 
     return {
-      transition,
+      transition: 'all 0.2s ease',
+      opacity,
+      boxShadow: '0px 5px 15px rgba(0,0,0,0.2)',
+      transform: 'translateY(-60px)',
+    } as const
+  }
+
+  const getThrowButtonStyle = () => {
+    return {
+      transition: 'all 0.2s ease',
       opacity: snapshot?.isMyTurn ? 1 : 0.3,
       boxShadow: '0px 5px 15px rgba(0,0,0,0.2)',
       transform: 'translateY(-60px)',
@@ -127,109 +127,197 @@ export const MyHand = () => {
   }
 
   const handleCardClick = (card: Card) => {
-    if (selectedCard?.id === card.id) {
-      setSelectedCard(undefined)
-    } else {
-      setSelectedCard(card)
-    }
+    setSelectedCards((cards) => {
+      if (snapshot.roundPhase === 'tricking') {
+        if (cards.some((c) => c.id === card.id)) {
+          return []
+        }
+        return [card]
+      }
+
+      if (snapshot.roundPhase === 'throwing') {
+        if (cards.some((c) => c.id === card.id)) {
+          return cards.filter((c) => c.id !== card.id)
+        }
+        return [...cards, card]
+      }
+
+      return cards
+    })
   }
 
-  const playBindingTrick = (bindingCard: Card) => {
-    const startingCard = selectedCard
+  useEffect(() => {
+    console.log(snapshot)
+  }, [snapshot])
 
-    if (bindingCard && startingCard) {
-      playBindingTrickMutation.mutate({ gameId, playerSecret, bindingCard, startingCard })
-    }
-  }
-
-  const playRegularTrick = (card = selectedCard) => {
+  const playCard = (card = selectedCards[0]) => {
     if (card) {
-      playRegularTrickMutation.mutate({ gameId, playerSecret, card })
+      playCardMutation.mutate({ gameId, playerSecret, card })
     }
+    setSelectedCards([])
+  }
+
+  const throwCards = () => {
+    throwCardsMutation.mutate({ gameId, playerSecret, cards: selectedCards, oneOpen: false })
+    setSelectedCards([])
   }
 
   const handlePlayPress = () => {
-    if (!snapshot.trumpSuit) {
-      modal.onOpen()
-    } else {
-      playRegularTrick()
-    }
+    playCard()
+  }
+
+  const handleThrowPress = () => {
+    throwCards()
+  }
+
+  const handleAcceptChicagoPress = () => {
+    answerChicagoMutation.mutate({ gameId, playerSecret, takeChicago: true })
+  }
+
+  const handleRejectChicagoPress = () => {
+    answerChicagoMutation.mutate({ gameId, playerSecret, takeChicago: false })
   }
 
   const handleDragEnd = (e: DragEndEvent) => {
     setPendingDropCard(undefined)
-    setSelectedCard(undefined)
-    if (!e.over || !isMyTurn) {
-      return
-    } else if (!snapshot.trumpSuit) {
-      modal.onOpen()
-    } else {
-      playRegularTrick(e.active.data.current as Card)
+    setSelectedCards([])
+    if (e.over && isMyTurn) {
+      playCard(e.active.data.current as Card)
     }
   }
 
   const handleDragOver = (e: DragOverEvent) => {
     if (isMyTurn) {
-      setSelectedCard(undefined)
+      setSelectedCards([])
       setPendingDropCard(e.over ? (e.active.data.current as Card) : undefined)
     }
   }
 
-  const { isMyTurn, myCards, roundPhase } = snapshot
+  const { isMyTurn, myCards, roundPhase, gamePhase } = snapshot
   const sortedCards = sortBySuitAndValue(myCards)
-  const canPlay = isMyTurn && roundPhase === 'tricking'
+  const canPlay = isMyTurn && ['tricking', 'throwing'].includes(roundPhase)
+
+  // Fixed overlap - cards will naturally center with flex
+  // Cards are 120px wide, overlap of 60px means each card adds 60px to total width
+  const overlapMargin = 60
 
   return (
     <DndContext onDragEnd={handleDragEnd} onDragOver={handleDragOver} sensors={sensors}>
-      <Droppable id="dropzone" enabled={roundPhase === 'tricking'} />
-      <Box minHeight={minHeight} maxHeight={maxHeight}>
-        <Box position="fixed" bottom={0} left={0} right={0} ref={ref}>
+      {gamePhase === 'round' && roundPhase === 'tricking' && <Droppable id="dropzone" />}
+      <Box minHeight={minHeight}>
+        <Box
+          position="fixed"
+          bottom={0}
+          left={0}
+          right={0}
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          paddingBottom="env(safe-area-inset-bottom)"
+          ref={ref}
+        >
           <SlideFade in={shouldFadeIn} offsetY="120px">
-            <Box paddingX="5" marginBottom={isMobile ? '-14' : '-24'}>
-              <HStack spacing="-20" opacity={canPlay ? 1 : 0.15}>
+            <Box paddingX="4">
+              <Box paddingBottom="4" textAlign="center" opacity={gamePhase === 'round' ? 1 : 0}>
+                {(() => {
+                  switch (roundPhase) {
+                    case 'throwing':
+                      return (
+                        <Button
+                          style={getThrowButtonStyle()}
+                          onClick={handleThrowPress}
+                          variant="solid"
+                          colorScheme={selectedCards.length > 0 ? 'green' : 'blue'}
+                          borderRadius="3xl"
+                          isDisabled={!canPlay}
+                        >
+                          {selectedCards.length > 0 ? 'Throw' : 'Pass'}
+                        </Button>
+                      )
+                    case 'tricking':
+                      return (
+                        <Button
+                          style={getPlayButtonStyle()}
+                          onClick={handlePlayPress}
+                          variant="solid"
+                          colorScheme="green"
+                          borderRadius="3xl"
+                          isDisabled={!canPlay}
+                        >
+                          Play
+                        </Button>
+                      )
+                    case 'asking_chicago':
+                      return (
+                        isMyTurn && (
+                          <VStack spacing="2" justifyContent="center">
+                            <strong>Chicago?</strong>
+                            <HStack spacing="2" justifyContent="center">
+                              <Button
+                                onClick={handleAcceptChicagoPress}
+                                variant="solid"
+                                colorScheme="green"
+                                borderRadius="3xl"
+                                boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
+                              >
+                                Yes
+                              </Button>
+                              <Button
+                                onClick={handleRejectChicagoPress}
+                                variant="solid"
+                                colorScheme="red"
+                                borderRadius="3xl"
+                                boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
+                              >
+                                No
+                              </Button>
+                            </HStack>
+                          </VStack>
+                        )
+                      )
+                    case 'asking_four_of_a_kind':
+                      return (
+                        <Button variant="solid" colorScheme="green" borderRadius="3xl">
+                          Ask Four of a Kind
+                        </Button>
+                      )
+                    case 'asking_one_open':
+                      return (
+                        <Button
+                          onClick={handlePlayPress}
+                          variant="solid"
+                          colorScheme="green"
+                          borderRadius="3xl"
+                        >
+                          Ask One Open
+                        </Button>
+                      )
+                    default:
+                      return null
+                  }
+                })()}
+              </Box>
+              <Flex justifyContent="center" opacity={canPlay ? 1 : 0.15} marginBottom="-110px">
                 {sortedCards.map((card, idx) => (
-                  <Flex
+                  <Box
                     key={card.id}
-                    direction="column"
-                    alignItems="center"
-                    style={{ marginLeft: idx ? '-45px' : undefined }}
+                    zIndex={idx}
+                    marginLeft={idx > 0 ? `-${overlapMargin}px` : undefined}
+                    transition="margin 0.2s ease"
                   >
-                    <Box paddingBottom="5">
-                      <Button
-                        style={getButtonStyle(card.id)}
-                        onClick={handlePlayPress}
-                        variant="solid"
-                        colorScheme="green"
-                        borderRadius="3xl"
-                        isDisabled={!canPlay}
-                        zIndex={card.id === selectedCard?.id ? undefined : -999}
-                      >
-                        Play
-                      </Button>
-                    </Box>
                     <Draggable id={card.id} card={card}>
-                      <Box maxHeight={200}>
-                        <PlayingCard
-                          style={getCardStyle(card.id)}
-                          onClick={() => handleCardClick(card)}
-                          card={card}
-                          trump={card.suit === snapshot.trumpSuit}
-                        />
-                      </Box>
+                      <PlayingCard
+                        style={getCardStyle(card.id)}
+                        onClick={() => handleCardClick(card)}
+                        card={card}
+                      />
                     </Draggable>
-                  </Flex>
+                  </Box>
                 ))}
-              </HStack>
+              </Flex>
             </Box>
           </SlideFade>
         </Box>
-
-        <ChoosePartnerModal
-          selectedCard={selectedCard}
-          onClose={modal.onClose}
-          onChoose={playBindingTrick}
-          isOpen={modal.isOpen}
-        />
       </Box>
     </DndContext>
   )
@@ -237,17 +325,14 @@ export const MyHand = () => {
 
 const handleError = (error?: Errors) => {
   switch (error) {
-    case Errors.BID_TOO_LOW: {
-      alert('Your bid is too low!')
-      break
-    }
+    case Errors.CARD_NOT_IN_HAND:
     case Errors.INVALID_PHASE:
     case Errors.FORBIDDEN: {
       alert('You are not allowed to do that right now')
       break
     }
     case Errors.TOO_FEW_PLAYERS: {
-      alert('You need to be at least 4 players to play')
+      alert('You need to be at least 2 players to play')
       break
     }
   }
@@ -275,12 +360,11 @@ const Draggable = ({
   )
 }
 
-const Droppable = ({ id, enabled }: { id: string; enabled: boolean }) => {
-  const { setNodeRef } = useDroppable({ id, disabled: !enabled })
+const Droppable = ({ id }: { id: string }) => {
+  const { setNodeRef } = useDroppable({ id })
 
   return (
     <Box
-      zIndex={enabled ? undefined : -999}
       ref={setNodeRef}
       id={id}
       position="absolute"

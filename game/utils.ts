@@ -134,7 +134,7 @@ const isNumberOfAKind = (hand: Set<Card>, numberOfAKind: number): boolean => {
 
 export const createRound = (overrides: Partial<Round>): Round => {
   return {
-    phase: 'tricking',
+    phase: 'throwing',
     tricks: [],
     throwCycles: [],
     ...overrides,

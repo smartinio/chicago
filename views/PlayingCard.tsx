@@ -1,4 +1,4 @@
-import Image from 'next/legacy/image'
+import Image from 'next/image'
 import { Box, BoxProps, Flex } from '@chakra-ui/react'
 import { Card } from 'shared/types'
 import { getCardSrc } from 'utils/card'
@@ -6,10 +6,9 @@ import { getCardSrc } from 'utils/card'
 interface PlayingCardProps {
   card: Card
   pulse?: boolean
-  trump?: boolean
 }
 
-export const PlayingCard = ({ card, pulse, trump, ...boxProps }: PlayingCardProps & BoxProps) => {
+export const PlayingCard = ({ card, pulse, ...boxProps }: PlayingCardProps & BoxProps) => {
   return (
     <Box {...boxProps} overflow="visible">
       <Flex
@@ -19,7 +18,7 @@ export const PlayingCard = ({ card, pulse, trump, ...boxProps }: PlayingCardProp
           animation: pulse ? 'pulse-red 1s infinite' : undefined,
         }}
       >
-        <Image alt={card.id} src={getCardSrc(card)} priority />
+        <Image alt={card.id} src={getCardSrc(card)} width={120} height={168} priority />
       </Flex>
     </Box>
   )

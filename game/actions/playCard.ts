@@ -110,6 +110,8 @@ export const playCard = publicProcedure
           mutate.endRound({ game })
           return Results.ROUND_OVER
         }
+
+        mutate.addTrick({ game })
       }
 
       mutate.setCurrentPlayer({ game, player: nextTricker })

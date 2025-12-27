@@ -3,7 +3,6 @@ import { getGameAsPlayer } from 'game/store'
 import { Errors, isError } from 'game/types'
 import { publicProcedure } from 'server/trpc'
 import { createSnapshot } from 'game/snapshot'
-import { observable } from '@trpc/server/observable'
 import { emitter, getPlayerChannel, SocketEvent } from 'game/emitter'
 
 export const snapshotQuery = publicProcedure
@@ -34,22 +33,23 @@ export const snapshotSubscription = publicProcedure
       playerSecret: z.string(),
     })
   )
-  .subscription(({ input }) => {
-    return observable<SocketEvent | Errors>((emit) => {
-      const result = getGameAsPlayer(input)
+  .subscription(async function* ({ input, signal }): AsyncGenerator<SocketEvent | Errors> {
+    const result = getGameAsPlayer(input)
 
-      if (isError(result)) {
-        return emit.next(result)
-      }
+    if (isError(result)) {
+      yield result
+      return
+    }
 
-      const { game, player } = result
+    const { game, player } = result
 
-      const snapshot = createSnapshot({ game, player })
+    // Emit initial snapshot
+    yield createSnapshot({ game, player })
 
-      emit.next(snapshot)
+    const playerChannel = getPlayerChannel(player)
 
-      const playerChannel = getPlayerChannel(player)
-
-      return emitter.subscribe(playerChannel, (data) => emit.next(data))
-    })
+    // Listen for updates using async iterator
+    for await (const [data] of emitter.iterate(playerChannel, signal)) {
+      yield data
+    }
   })

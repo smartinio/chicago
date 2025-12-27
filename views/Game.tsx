@@ -2,7 +2,7 @@ import { Box, Code, Container, Flex, Spinner, Text } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { trpc } from 'utils/trpc'
 import { Errors, Snapshot, isError } from 'shared/types'
-import { dataHandler, defaultDataHandler } from 'utils/data'
+import { dataHandler } from 'utils/data'
 import { Start } from 'views/Start'
 import { useSnapshot, setSnapshot, useResults, setError, clearPlayerGame } from 'store'
 import { MyHand } from 'views/MyHand'
@@ -11,7 +11,7 @@ import { Players } from 'views/Players'
 import { MiddleArea } from 'views/MiddleArea'
 import { memo, useEffect, useRef } from 'react'
 import { cards } from 'utils/card'
-import Image from 'next/legacy/image'
+import Image from 'next/image'
 
 interface Props {
   gameId: string
@@ -134,8 +134,8 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
 const PreloadedCards = memo(function PreloadedCards() {
   return (
     <Box position="fixed" bottom={0} left={0} zIndex={-999} opacity={0}>
-      {Object.entries(cards).map(([key, card]) => (
-        <Image key={key} src={card} alt={key} priority />
+      {Object.entries(cards).map(([key, src]) => (
+        <Image key={key} src={src} alt={key} width={100} height={140} priority />
       ))}
     </Box>
   )

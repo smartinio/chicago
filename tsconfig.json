@@ -14,7 +14,9 @@
       "shared/*": ["./shared/*"],
       "utils/*": ["./utils/*"],
       "game/*": ["./game/*"],
-      "server/*": ["./server/*"]
+      "server/*": ["./server/*"],
+      "views/*": ["./views/*"],
+      "store": ["./store"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,

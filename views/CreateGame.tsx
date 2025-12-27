@@ -7,7 +7,7 @@ import {
   MIN_GAME_NAME_LENGTH,
   MIN_PLAYER_NAME_LENGTH,
 } from 'shared/constants'
-import { setError, setPlayerGame } from 'store'
+import { setPlayerGame } from 'store'
 import { trpc } from 'utils/trpc'
 import { usePersistedState } from 'utils/usePersistedState'
 import { useTextInput } from 'utils/useTextInput'

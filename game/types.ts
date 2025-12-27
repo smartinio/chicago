@@ -53,7 +53,6 @@ export type EventAction =
   | 'lost_round'
   | 'threw_cards'
   | 'won_trick'
-  | 'collected_trick'
   | 'won_round'
   | 'won_game'
 
@@ -132,6 +131,7 @@ export enum Results {
   LEFT_GAME = 'LEFT_GAME',
   KICKED_PLAYER = 'KICKED_PLAYER',
   DESTROYED_GAME = 'DESTROYED_GAME',
+  ANSWERED_CHICAGO = 'ANSWERED_CHICAGO',
 }
 
 const errors = new Set(Object.values(Errors))

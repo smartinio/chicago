@@ -10,7 +10,8 @@ export type PlayerSnapshot = {
   id: string
   name: string
   score: number
-  playedCard?: Card
+  playedCards: Card[]
+  takenChicago: boolean
 }
 
 export type Snapshot = {
@@ -30,6 +31,9 @@ export type Snapshot = {
   roundPhase: RoundPhase
   canStart: boolean
   startingCard?: Card
+  rules: Game['rules']
+  trickCount: number
+  chicagoCallerId?: string
 }
 
 const createPlayerSnapshotList = (game: Game): PlayerSnapshot[] => {
@@ -40,13 +44,22 @@ const createPlayerSnapshotList = (game: Game): PlayerSnapshot[] => {
       id: player.id,
       name: player.name,
       score: player.score,
-      playedCard: last(game.round.tricks)?.playedCards.find((p) => p.player.id === player.id)?.card,
+      playedCards: game.round.tricks.flatMap((trick) =>
+        trick.playedCards.filter((p) => p.player.id === player.id).map((p) => p.card)
+      ),
+      takenChicago: player.takenChicago,
     }
   })
 }
 
 export const createSnapshot = (params: { player: Player; game: Game }): Snapshot => {
   const { player, game } = params
+
+  const canStart =
+    game.dealer.id === player.id &&
+    ((game.phase === 'new' && game.players.length >= 2) ||
+      game.round.phase === 'killed' ||
+      game.round.phase === 'over')
 
   return {
     gameId: game.id,
@@ -63,16 +76,15 @@ export const createSnapshot = (params: { player: Player; game: Game }): Snapshot
         actorId: event.actor === 'server' ? 'server' : event.actor.id,
       })
     ),
+    trickCount: game.round.tricks.length,
     gamePhase: game.phase,
     name: game.name,
     ownerId: game.owner.id,
     players: createPlayerSnapshotList(game),
     roundPhase: game.round.phase,
     password: game.password,
-    canStart:
-      game.dealer.id === player.id &&
-      ((game.phase === 'new' && game.players.length >= 4) ||
-        game.round.phase === 'killed' ||
-        game.round.phase === 'over'),
+    canStart,
+    rules: game.rules,
+    chicagoCallerId: game.round.chicagoCaller?.id,
   }
 }

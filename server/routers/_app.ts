@@ -8,6 +8,8 @@ import { playCard } from 'game/actions/playCard'
 import { startNewRound } from 'game/actions/startNewRound'
 import { snapshotQuery, snapshotSubscription } from 'game/actions/snapshot'
 import { keepAlive } from 'game/actions/keepAlive'
+import { throwCards } from 'game/actions/throwCards'
+import { answerChicago } from 'game/actions/answerChicago'
 
 export const appRouter = router({
   createNewGame,
@@ -15,6 +17,8 @@ export const appRouter = router({
   leaveGame,
   kickPlayer,
   playCard,
+  throwCards,
+  answerChicago,
   startNewRound,
   snapshotQuery,
   snapshotSubscription,

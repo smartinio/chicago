@@ -1,4 +1,5 @@
 import { Game, Player, Round } from 'game/types'
+import { CARDS } from 'game/constants'
 
 export const stubPlayer = (overrides?: Partial<Player>): Player => {
   return {
@@ -7,6 +8,7 @@ export const stubPlayer = (overrides?: Partial<Player>): Player => {
     secret: 'player-secret',
     name: 'player-name',
     score: 0,
+    takenChicago: false,
     ...overrides,
   }
 }
@@ -21,16 +23,11 @@ export const stubNPlayers = (n: number, override?: (n: number) => Partial<Player
   )
 }
 
-export const stubRound = ({
-  currentPlayer,
-  ...overrides
-}: { currentPlayer: Player } & Partial<Round>): Round => {
+export const stubRound = ({ ...overrides }: Partial<Round>): Round => {
   return {
-    bids: [],
-    currentPlayer,
-    folds: new Set(),
-    phase: 'bidding',
+    phase: 'throwing',
     tricks: [],
+    throwCycles: [],
     ...overrides,
   }
 }
@@ -45,14 +42,34 @@ export const stubGame = (params: { numPlayers?: number; overrides?: Partial<Game
     events: [],
     id: 'some-id',
     name: 'Some game',
+    deck: [...CARDS],
     owner,
     dealer: owner,
     password: 'pass',
     phase: 'new',
     players,
-    round: stubRound({
-      currentPlayer,
-    }),
+    round: stubRound({}),
+    currentPlayer,
+    rules: {
+      throwScoreThreshold: 45,
+      pointsForWin: 5,
+      pointsForWinWithTwo: 10,
+      numberOfThrows: 3,
+      chicagoRequiresBestHand: true,
+      chicagoCanBeCalledBeforeFifteen: true,
+      oneOpenMode: 'last',
+      handPoints: {
+        pair: 1,
+        twoPair: 2,
+        threeOfAKind: 3,
+        straight: 4,
+        flush: 5,
+        fullHouse: 6,
+        fourOfAKind: 7,
+        straightFlush: 8,
+        royalStraightFlush: 52,
+      },
+    },
     ...overrides,
-  }
+  } satisfies Game
 }

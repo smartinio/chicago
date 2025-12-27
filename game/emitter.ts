@@ -1,8 +1,9 @@
-import { EventEmitter } from 'events'
+import { EventEmitter, on } from 'events'
 import { createSnapshot, Snapshot } from 'game/snapshot'
 import { Game, Player } from './types'
 
 const ee = new EventEmitter()
+ee.setMaxListeners(100) // Allow many concurrent subscriptions
 
 export type SocketEvent = Snapshot | 'KICKED'
 
@@ -17,6 +18,9 @@ export const emitter = {
   subscribe: (channel: PlayerChannel, handler: (snapshot: SocketEvent) => void) => {
     ee.on(channel, handler)
     return () => ee.off(channel, handler)
+  },
+  iterate: (channel: PlayerChannel, signal?: AbortSignal) => {
+    return on(ee, channel, { signal }) as AsyncIterableIterator<[SocketEvent]>
   },
 }
 

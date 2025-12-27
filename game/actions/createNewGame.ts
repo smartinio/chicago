@@ -9,6 +9,8 @@ import {
   MIN_GAME_NAME_LENGTH,
   MIN_PLAYER_NAME_LENGTH,
 } from 'shared/constants'
+import { CARDS } from 'game/constants'
+import { Game } from 'game/types'
 
 export const createNewGame = publicProcedure
   .input(
@@ -26,17 +28,37 @@ export const createNewGame = publicProcedure
     })
 
     const gameData = {
+      deck: [...CARDS],
+      rules: {
+        throwScoreThreshold: 45,
+        pointsForWin: 5,
+        pointsForWinWithTwo: 10,
+        numberOfThrows: 3,
+        chicagoRequiresBestHand: true,
+        chicagoCanBeCalledBeforeFifteen: true,
+        oneOpenMode: 'last',
+        handPoints: {
+          pair: 1,
+          twoPair: 2,
+          threeOfAKind: 3,
+          straight: 4,
+          flush: 5,
+          fullHouse: 6,
+          fourOfAKind: 7,
+          straightFlush: 8,
+          royalStraightFlush: 52,
+        },
+      },
       owner,
       dealer: owner,
+      currentPlayer: owner,
       phase: 'new' as const,
       name: input.gameName,
       password: input.password,
-      round: createRound({
-        currentPlayer: owner,
-      }),
+      round: createRound({}),
       players: [owner],
       events: [],
-    }
+    } satisfies Omit<Game, 'id'>
 
     const { game } = storeGame(gameData)
 

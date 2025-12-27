@@ -76,9 +76,10 @@ export const mutate = {
 
   throwCards: (params: { game: Game; player: Player; cards: Card[] }) => {
     const { game, player, cards } = params
+    cards.forEach((card) => player.cards.delete(card))
     game.deck.push(...cards) // add cards back to bottom of deck
     const newCards = game.deck.splice(0, cards.length)
-    newCards.forEach(player.cards.add)
+    newCards.forEach((card) => player.cards.add(card))
   },
 
   updateThrowCycle: (params: { game: Game; player: Player }) => {
@@ -100,6 +101,10 @@ export const mutate = {
     const { game, index } = params
     const cycle = last(game.round.throwCycles)!
     cycle[index] = true
+  },
+
+  setChicagoCaller: (params: { game: Game; player: Player }) => {
+    params.game.round.chicagoCaller = params.player
   },
 
   setCurrentPlayer: (params: { game: Game; player: Player }) => {

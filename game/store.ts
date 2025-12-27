@@ -48,10 +48,15 @@ export const getGameAsCurrentPlayer = (params: { gameId: string; playerSecret: s
     return Errors.GAME_NOT_FOUND
   }
 
-  const player = game.round.currentPlayer
+  const player = game.currentPlayer
 
   if (player.secret !== params.playerSecret) {
-    console.error('Player secret', params.playerSecret, 'is not bound to current player id:', player.id)
+    console.error(
+      'Player secret',
+      params.playerSecret,
+      'is not bound to current player id:',
+      player.id
+    )
     return Errors.FORBIDDEN
   }
 
@@ -102,7 +107,12 @@ export const getGameAsPlayer = (params: { gameId: string; playerSecret: string }
   const player = game.players.find((player) => player.secret === params.playerSecret)
 
   if (!player) {
-    console.error('Player secret', params.playerSecret, 'is not bound to any player in game:', params.gameId)
+    console.error(
+      'Player secret',
+      params.playerSecret,
+      'is not bound to any player in game:',
+      params.gameId
+    )
     return Errors.FORBIDDEN
   }
 
@@ -136,7 +146,12 @@ export const destroyGameAsOwner = (params: { gameId: string; ownerSecret: string
   }
 
   if (game && game.owner.secret !== params.ownerSecret) {
-    console.error('Cannot destroy. Player secret', params.ownerSecret, 'is not bound to owner id:', game.owner.id)
+    console.error(
+      'Cannot destroy. Player secret',
+      params.ownerSecret,
+      'is not bound to owner id:',
+      game.owner.id
+    )
     return Errors.FORBIDDEN
   }
 
