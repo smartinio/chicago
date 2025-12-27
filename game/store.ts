@@ -2,6 +2,7 @@ import { last } from 'utils/last'
 import { v4 as uuid } from 'uuid'
 import { notifyKickedPlayer } from './emitter'
 import { Game, Errors } from './types'
+import { logger } from './logger'
 
 const dev = process.env.NODE_ENV === 'development'
 
@@ -29,7 +30,7 @@ export const getGameAsOutsider = (params: { gameId: string; password?: string })
   }
 
   if (game && game.password !== params.password) {
-    console.error(
+    logger.error(
       'Passwords dont match. Actual=',
       String(game.password),
       'Provided=',
@@ -51,7 +52,7 @@ export const getGameAsCurrentPlayer = (params: { gameId: string; playerSecret: s
   const player = game.currentPlayer
 
   if (player.secret !== params.playerSecret) {
-    console.error(
+    logger.error(
       'Player secret',
       params.playerSecret,
       'is not bound to current player id:',
@@ -73,7 +74,7 @@ export const getGameAsOwner = (params: { gameId: string; ownerSecret: string }) 
   const { owner } = game
 
   if (owner.secret !== params.ownerSecret) {
-    console.error('Player secret', params.ownerSecret, 'is not bound to owner id:', owner.id)
+    logger.error('Player secret', params.ownerSecret, 'is not bound to owner id:', owner.id)
     return Errors.FORBIDDEN
   }
 
@@ -90,7 +91,7 @@ export const getGameAsDealer = (params: { gameId: string; dealerSecret: string }
   const { dealer } = game
 
   if (dealer.secret !== params.dealerSecret) {
-    console.error('Player secret', params.dealerSecret, 'is not bound to dealer id:', dealer.id)
+    logger.error('Player secret', params.dealerSecret, 'is not bound to dealer id:', dealer.id)
     return Errors.FORBIDDEN
   }
 
@@ -107,7 +108,7 @@ export const getGameAsPlayer = (params: { gameId: string; playerSecret: string }
   const player = game.players.find((player) => player.secret === params.playerSecret)
 
   if (!player) {
-    console.error(
+    logger.error(
       'Player secret',
       params.playerSecret,
       'is not bound to any player in game:',
@@ -146,7 +147,7 @@ export const destroyGameAsOwner = (params: { gameId: string; ownerSecret: string
   }
 
   if (game && game.owner.secret !== params.ownerSecret) {
-    console.error(
+    logger.error(
       'Cannot destroy. Player secret',
       params.ownerSecret,
       'is not bound to owner id:',
@@ -174,14 +175,14 @@ const createStaleChecker = (game: Game) => {
     const staleTimeMillis = Date.now() - lastEventMillis
 
     if (staleTimeMillis > MAX_GAME_STALE_TIME_MILLIS) {
-      console.log('Stale game: Killing game', game.id, 'aka', game.name)
+      logger.log('Stale game: Killing game', game.id, 'aka', game.name)
 
       clearInterval(interval)
       games.delete(game.id)
       staleGameIntervalIds.delete(game.id)
 
       for (const player of game.players) {
-        console.log('Stale game: Kicking player', player.name)
+        logger.log('Stale game: Kicking player', player.name)
 
         notifyKickedPlayer(player)
       }

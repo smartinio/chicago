@@ -7,6 +7,7 @@ import { mutate } from 'game/mutations'
 import { schemas } from 'shared/schemas'
 import { publicProcedure } from 'server/trpc'
 import { updateClients } from 'game/emitter'
+import { logger } from 'game/logger'
 
 export const playCard = publicProcedure
   .input(
@@ -27,17 +28,17 @@ export const playCard = publicProcedure
     const { card } = input
 
     if (game.phase !== 'round') {
-      console.error('Cannot trick when game phase is', game.phase)
+      logger.error('Cannot trick when game phase is', game.phase)
       return Errors.INVALID_PHASE
     }
 
     if (game.round.phase !== 'tricking') {
-      console.error('Cannot trick when round phase is', game.round.phase)
+      logger.error('Cannot trick when round phase is', game.round.phase)
       return Errors.INVALID_PHASE
     }
 
     if (!player.cards.has(card)) {
-      console.error('Cannot play card not on hand')
+      logger.error('Cannot play card not on hand')
       return Errors.FORBIDDEN
     }
 
@@ -54,7 +55,7 @@ export const playCard = publicProcedure
       const canFollowSuit = canPlayerFollowSuit({ player, suit: starter.card.suit })
 
       if (canFollowSuit && !followsSuit) {
-        console.error('Player which can follow suit must do so')
+        logger.error('Player which can follow suit must do so')
         return Errors.FORBIDDEN
       }
     }

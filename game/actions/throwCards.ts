@@ -6,6 +6,7 @@ import { mutate } from 'game/mutations'
 import { schemas } from 'shared/schemas'
 import { updateClients } from 'game/emitter'
 import { getPlayerNextTo, getPlayersWithBestHand } from 'game/utils'
+import { logger } from 'game/logger'
 
 export const throwCards = publicProcedure
   .input(
@@ -27,12 +28,12 @@ export const throwCards = publicProcedure
     const { cards, oneOpen } = input
 
     if (game.phase !== 'round') {
-      console.error('Cannot throw cards when game phase is not round')
+      logger.error('Cannot throw cards when game phase is not round')
       return Errors.INVALID_PHASE
     }
 
     if (game.round.phase !== 'throwing') {
-      console.error('Cannot throw cards when round phase is not throwing')
+      logger.error('Cannot throw cards when round phase is not throwing')
       return Errors.INVALID_PHASE
     }
 
@@ -41,7 +42,7 @@ export const throwCards = publicProcedure
       game.rules.oneOpenMode === 'last' &&
       game.round.throwCycles.length !== game.rules.numberOfThrows
     ) {
-      console.error('Cannot get one open card until the final throw')
+      logger.error('Cannot get one open card until the final throw')
       return Errors.FORBIDDEN
     }
 

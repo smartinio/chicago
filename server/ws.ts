@@ -3,6 +3,7 @@ import { Server } from 'http'
 import ws from 'ws'
 import { appRouter } from './routers/_app'
 import { createContext } from './trpc'
+import { logger } from 'game/logger'
 
 export const createWSS = (
   server?: Server,
@@ -14,14 +15,14 @@ export const createWSS = (
   const handler = applyWSSHandler({ wss, router: appRouter, createContext })
 
   wss.on('connection', (ws) => {
-    console.log(`➕➕ Connection (${wss.clients.size})`)
+    logger.log(`➕➕ Connection (${wss.clients.size})`)
     ws.once('close', () => {
-      console.log(`➖➖ Connection (${wss.clients.size})`)
+      logger.log(`➖➖ Connection (${wss.clients.size})`)
     })
   })
 
   process.on('SIGTERM', () => {
-    console.log('SIGTERM')
+    logger.log('SIGTERM')
     handler.broadcastReconnectNotification()
     wss.close()
   })

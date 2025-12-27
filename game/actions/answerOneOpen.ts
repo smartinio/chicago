@@ -5,6 +5,7 @@ import { Errors, isError, Results } from 'shared/types'
 import { mutate } from 'game/mutations'
 import { updateClients } from 'game/emitter'
 import { handlePostThrow } from './throwCards'
+import { logger } from 'game/logger'
 
 export const answerOneOpen = publicProcedure
   .input(
@@ -32,7 +33,7 @@ export const answerOneOpen = publicProcedure
     }
 
     if (!game.round.openCard) {
-      console.error('No open card to answer')
+      logger.error('No open card to answer')
       return Errors.UNEXPECTED
     }
 
