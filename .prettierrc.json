@@ -1,0 +1,10 @@
+{
+  "printWidth": 100,
+  "semi": false,
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true
+}
