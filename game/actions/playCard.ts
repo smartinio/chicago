@@ -100,6 +100,12 @@ export const playCard = publicProcedure
             const bestHandPlayers = getPlayersWithBestHand(game)
 
             for (const { player, points, handType } of bestHandPlayers) {
+              if (handType === 'fourOfAKind') {
+                mutate.setCurrentPlayer({ game, player })
+                mutate.setRoundPhase({ game, phase: 'asking_four_of_a_kind' })
+                return Results.PLAYED_TRICK
+              }
+
               mutate.givePoints({ player, points })
               mutate.addEvent({
                 game,

@@ -12,9 +12,9 @@ export const getPlayerNextTo = (current: Player, game: Game) => {
   return getNext(game.players, (p) => p.id === current.id)
 }
 
-export const getPlayersWithBestHand = (
-  game: Game
-): { player: Player; handType: HandType; points: number }[] => {
+type BestHand = { player: Player; handType: HandType; points: number }
+
+export const getPlayersWithBestHand = (game: Game): BestHand[] => {
   const playerHandValues = game.players.map((player) => ({
     player,
     ...getPointsForHand(game, player.cards),
@@ -22,10 +22,29 @@ export const getPlayersWithBestHand = (
 
   const bestValue = Math.max(...playerHandValues.map((p) => p.points))
 
-  return playerHandValues.filter(
-    (p): p is { player: Player; handType: HandType; points: number } =>
-      p.handType !== null && p.points === bestValue
+  const candidates = playerHandValues.filter(
+    (p): p is BestHand => p.handType !== null && p.points === bestValue
   )
+
+  return tieBreak(candidates)
+}
+
+export const tieBreak = (candidates: BestHand[]): BestHand[] => {
+  if (candidates.length <= 1) return candidates
+
+  let winners = [...candidates].map((c) => ({
+    candidate: c,
+    sortedValues: Array.from(c.player.cards)
+      .map((card) => card.value)
+      .sort((a, b) => b - a),
+  }))
+
+  for (let i = 0; i < 5 && winners.length > 1; i++) {
+    const max = Math.max(...winners.map((w) => w.sortedValues[i]))
+    winners = winners.filter((w) => w.sortedValues[i] === max)
+  }
+
+  return winners.map((w) => w.candidate)
 }
 
 export const getPointsForHand = (

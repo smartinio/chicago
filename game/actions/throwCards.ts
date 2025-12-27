@@ -1,7 +1,7 @@
 import { publicProcedure } from 'server/trpc'
 import { z } from 'zod'
 import { getGameAsCurrentPlayer } from 'game/store'
-import { Errors, isError, Player, Results } from 'game/types'
+import { Errors, Game, isError, Player, Results } from 'game/types'
 import { mutate } from 'game/mutations'
 import { schemas } from 'shared/schemas'
 import { updateClients } from 'game/emitter'
@@ -24,16 +24,26 @@ export const throwCards = publicProcedure
     }
 
     const { game, player } = result
+    const { cards, oneOpen } = input
 
     if (game.phase !== 'round') {
+      console.error('Cannot throw cards when game phase is not round')
       return Errors.INVALID_PHASE
     }
 
     if (game.round.phase !== 'throwing') {
+      console.error('Cannot throw cards when round phase is not throwing')
       return Errors.INVALID_PHASE
     }
 
-    const { cards } = input
+    if (
+      oneOpen &&
+      game.rules.oneOpenMode === 'last' &&
+      game.round.throwCycles.length !== game.rules.numberOfThrows
+    ) {
+      console.error('Cannot get one open card until the final throw')
+      return Errors.FORBIDDEN
+    }
 
     if (!cards.every((card) => player.cards.has(card))) {
       return Errors.CARD_NOT_IN_HAND
@@ -41,20 +51,13 @@ export const throwCards = publicProcedure
 
     const count = cards.length
 
-    const moveToNextPhase = () => {
-      mutate.setCurrentPlayer({ game, player: getPlayerNextTo(game.dealer, game) })
-
-      if (game.rules.chicagoCanBeCalledBeforeFifteen || game.players.some((p) => p.score >= 15)) {
-        mutate.setRoundPhase({ game, phase: 'asking_chicago' })
-      } else {
-        mutate.setRoundPhase({ game, phase: 'tricking' })
-      }
-    }
-
     const outcome = (() => {
-      const cycle = mutate.updateThrowCycle({ game, player })
-      const isLastThrowInCycle = cycle.every(Boolean)
-      const isLastCycle = game.round.throwCycles.length === game.rules.numberOfThrows
+      if (oneOpen) {
+        mutate.returnCards({ game, cards })
+        const [card] = mutate.drawCards({ game, count: 1 })
+        mutate.setOpenCard({ game, card })
+        mutate.setRoundPhase({ game, phase: 'asking_one_open' })
+      }
 
       if (count > 0) {
         mutate.throwCards({ game, player, cards })
@@ -62,35 +65,8 @@ export const throwCards = publicProcedure
 
       mutate.addEvent({ game, event: { actor: player, action: 'threw_cards', count } })
 
-      let nextPlayer
-
-      if (isLastThrowInCycle) {
-        if (isLastCycle) {
-          moveToNextPhase()
-          return Results.THREW_CARDS
-        }
-
-        const bestHandPlayers = getPlayersWithBestHand(game)
-
-        for (const { player, points, handType } of bestHandPlayers) {
-          mutate.givePoints({ player, points })
-          mutate.addEvent({
-            game,
-            event: { actor: player, action: 'received_points', points, handType },
-          })
-        }
-
-        mutate.addThrowCycle({ game })
-        nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: game.dealer })
-      } else {
-        nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: player })
-      }
-
-      if (!nextPlayer) {
-        moveToNextPhase()
-      } else {
-        mutate.setCurrentPlayer({ game, player: nextPlayer })
-      }
+      const cycle = mutate.updateThrowCycle({ game, player })
+      handlePostThrow({ game, player, cycle })
 
       return Results.THREW_CARDS
     })()
@@ -99,3 +75,56 @@ export const throwCards = publicProcedure
 
     return outcome
   })
+
+export const moveToNextPhase = (params: { game: Game }) => {
+  const { game } = params
+  mutate.setCurrentPlayer({ game, player: getPlayerNextTo(game.dealer, game) })
+
+  if (game.rules.chicagoCanBeCalledBeforeFifteen || game.players.some((p) => p.score >= 15)) {
+    mutate.setRoundPhase({ game, phase: 'asking_chicago' })
+  } else {
+    mutate.setRoundPhase({ game, phase: 'tricking' })
+  }
+}
+
+export const handlePostThrow = (params: { game: Game; player: Player; cycle: boolean[] }) => {
+  const { game, player, cycle } = params
+  const isLastThrowInCycle = cycle.every(Boolean)
+  const isLastCycle = game.round.throwCycles.length === game.rules.numberOfThrows
+
+  let nextPlayer
+
+  if (isLastThrowInCycle) {
+    if (isLastCycle) {
+      moveToNextPhase({ game })
+      return Results.THREW_CARDS
+    }
+
+    mutate.addThrowCycle({ game })
+    const bestHandPlayers = getPlayersWithBestHand(game)
+
+    for (const { player, points, handType } of bestHandPlayers) {
+      if (handType === 'fourOfAKind') {
+        mutate.setCurrentPlayer({ game, player })
+        mutate.setRoundPhase({ game, phase: 'asking_four_of_a_kind' })
+        return Results.THREW_CARDS
+      }
+
+      mutate.givePoints({ player, points })
+      mutate.addEvent({
+        game,
+        event: { actor: player, action: 'received_points', points, handType },
+      })
+    }
+
+    nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: game.dealer })
+  } else {
+    nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: player })
+  }
+
+  if (!nextPlayer) {
+    moveToNextPhase({ game })
+  } else {
+    mutate.setCurrentPlayer({ game, player: nextPlayer })
+  }
+}

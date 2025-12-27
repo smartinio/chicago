@@ -82,6 +82,31 @@ export const mutate = {
     newCards.forEach((card) => player.cards.add(card))
   },
 
+  drawCards: (params: { game: Game; count: number }) => {
+    const { game, count } = params
+    const cards = game.deck.splice(0, count)
+    return cards
+  },
+
+  acceptCards: (params: { player: Player; cards: Card[] }) => {
+    const { player, cards } = params
+    cards.forEach((card) => player.cards.add(card))
+  },
+
+  returnCards: (params: { game: Game; cards: Card[] }) => {
+    const { game, cards } = params
+    game.deck.push(...cards)
+  },
+
+  resetOthersScore: (params: { game: Game; player: Player }) => {
+    const { game, player } = params
+    for (const p of game.players) {
+      if (p.id !== player.id) {
+        player.score = 0
+      }
+    }
+  },
+
   updateThrowCycle: (params: { game: Game; player: Player }) => {
     const { game, player } = params
     const cycle = last(game.round.throwCycles)!
@@ -152,5 +177,9 @@ export const mutate = {
 
   setRoundPhase: (params: { game: Game; phase: Round['phase'] }) => {
     params.game.round.phase = params.phase
+  },
+
+  setOpenCard: (params: { game: Game; card: Card | undefined }) => {
+    params.game.round.openCard = params.card
   },
 }

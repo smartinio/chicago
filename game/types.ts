@@ -39,6 +39,7 @@ export type Round = {
   phase: RoundPhase
   throwCycles: boolean[][]
   chicagoCaller?: Player
+  openCard?: Card
 }
 
 export type EventAction =
@@ -55,6 +56,9 @@ export type EventAction =
   | 'won_trick'
   | 'won_round'
   | 'won_game'
+  | 'answered_one_open'
+  | 'answered_chicago'
+  | 'answered_four_of_a_kind'
 
 export type GameEvent = {
   actor: Player | 'server'
@@ -65,6 +69,8 @@ export type GameEvent = {
   count?: number
   handType?: HandType
   points?: number
+  accepted?: boolean
+  answer?: 'points' | 'reset_others'
   timestamp?: number
 }
 
@@ -132,6 +138,7 @@ export enum Results {
   KICKED_PLAYER = 'KICKED_PLAYER',
   DESTROYED_GAME = 'DESTROYED_GAME',
   ANSWERED_CHICAGO = 'ANSWERED_CHICAGO',
+  ANSWERED_ONE_OPEN = 'ANSWERED_ONE_OPEN',
 }
 
 const errors = new Set(Object.values(Errors))
