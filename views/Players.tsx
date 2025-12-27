@@ -99,9 +99,22 @@ const Player = (props: {
       const { clientWidth, clientHeight } = document.documentElement
       const x = (position.x + 35 + offset) / clientWidth
       const y = (position.y + 110 + offset) / clientHeight
-      confetti({ origin: { x, y }, startVelocity: 20, ticks: 75 })
+      confetti({
+        origin: { x, y },
+        ticks: 35,
+        scalar: 0.5,
+        gravity: 1.5,
+        startVelocity: 22,
+        decay: 0.875,
+      })
     }
   }, [])
+
+  useEffect(() => {
+    if (player.id === snapshot?.roundWinnerId) {
+      celebratePlayer()
+    }
+  }, [player.id, snapshot?.roundWinnerId])
 
   useEffect(() => {
     if (!isGameWinner) return

@@ -5,6 +5,7 @@ import { Errors, isError, Results } from 'shared/types'
 import { mutate } from 'game/mutations'
 import { updateClients } from 'game/emitter'
 import * as throwingPhase from './throwCards'
+import { decideWinningPlayedCard } from 'game/utils'
 
 export const answerFourOfAKind = publicProcedure
   .input(
@@ -58,7 +59,8 @@ export const answerFourOfAKind = publicProcedure
         }
       } else {
         // answering after tricks are played === post-game points
-        mutate.endRound({ game })
+        const { winning } = decideWinningPlayedCard({ round: game.round })
+        mutate.endRound({ game, roundWinner: winning.player })
         return Results.ROUND_OVER
       }
 

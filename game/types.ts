@@ -40,6 +40,7 @@ export type Round = {
   throwCycles: boolean[][]
   chicagoCaller?: Player
   openCard?: Card
+  winner?: Player
 }
 
 export type EventAction =
@@ -47,6 +48,7 @@ export type EventAction =
   | 'left_game'
   | 'kicked_player'
   | 'played_card'
+  | 'made_it_rain'
   | 'killed_round'
   | 'restarted_round'
   | 'received_points'

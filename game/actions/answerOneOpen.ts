@@ -40,6 +40,7 @@ export const answerOneOpen = publicProcedure
     const outcome = (() => {
       const { openCard } = game.round
       mutate.setOpenCard({ game, card: undefined })
+      mutate.setRoundPhase({ game, phase: 'throwing' })
 
       if (input.acceptOpen) {
         mutate.acceptCards({ player, cards: [openCard] })

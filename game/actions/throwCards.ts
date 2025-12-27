@@ -46,6 +46,11 @@ export const throwCards = publicProcedure
       return Errors.FORBIDDEN
     }
 
+    if (oneOpen && cards.length !== 1) {
+      logger.error('Cannot get one open card with more than one card')
+      return Errors.FORBIDDEN
+    }
+
     if (!cards.every((card) => player.cards.has(card))) {
       return Errors.CARD_NOT_IN_HAND
     }
@@ -54,14 +59,16 @@ export const throwCards = publicProcedure
 
     const outcome = (() => {
       if (oneOpen) {
+        mutate.removeCards({ player, cards })
         mutate.returnCards({ game, cards })
         const [card] = mutate.drawCards({ game, count: 1 })
         mutate.setOpenCard({ game, card })
         mutate.setRoundPhase({ game, phase: 'asking_one_open' })
+        return Results.THREW_CARDS
       }
 
       if (count > 0) {
-        mutate.throwCards({ game, player, cards })
+        mutate.exchangeCards({ game, player, cards })
       }
 
       mutate.addEvent({ game, event: { actor: player, action: 'threw_cards', count } })

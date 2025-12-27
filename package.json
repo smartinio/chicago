@@ -11,7 +11,7 @@
     "ws-dev": "tsx watch server/ws.dev.ts --tsconfig tsconfig.server.json",
     "dev": "NODE_ENV=development concurrently 'next dev' 'pnpm ws-dev'",
     "build:client": "NODE_OPTIONS=\"--max-old-space-size=8192\" next build",
-    "build:server": "rm -rf dist && NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --p tsconfig.server.json",
+    "build:server": "rm -rf dist && NODE_OPTIONS=\"--max-old-space-size=8192\" tsgo --p tsconfig.server.json",
     "build": "pnpm build:client && pnpm build:server",
     "start": "NODE_ENV=production node dist/server/index.js",
     "test:game": "jest --testEnvironment=node --passWithNoTests --forceExit --testPathPatterns=tests/server/",
@@ -48,7 +48,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^16.0.0",
-    "@types/canvas-confetti": "^1.6.4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/jest": "^30.0.0",
     "@types/node": "22.10.3",
     "@types/react": "18.2.73",

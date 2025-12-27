@@ -13,12 +13,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.12.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tsc -p tsconfig.server.json --noEmit
+      - run: pnpm ts
       - run: pnpm test
       - run: pnpm build:client
       - run: pnpm build:server

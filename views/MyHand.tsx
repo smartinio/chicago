@@ -31,6 +31,8 @@ export const MyHand = () => {
   const throwCardsMutation = trpc.throwCards.useMutation(mutationOptions)
   const playCardMutation = trpc.playCard.useMutation(mutationOptions)
   const answerChicagoMutation = trpc.answerChicago.useMutation(mutationOptions)
+  const answerOneOpenMutation = trpc.answerOneOpen.useMutation(mutationOptions)
+  const answerFourOfAKindMutation = trpc.answerFourOfAKind.useMutation(mutationOptions)
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 1 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 1 } })
@@ -120,7 +122,7 @@ export const MyHand = () => {
   const getThrowButtonStyle = () => {
     return {
       transition: 'all 0.2s ease',
-      opacity: snapshot?.isMyTurn ? 1 : 0.3,
+      opacity: snapshot?.isMyTurn ? 1 : 0,
       boxShadow: '0px 5px 15px rgba(0,0,0,0.2)',
       transform: 'translateY(-60px)',
     } as const
@@ -157,8 +159,8 @@ export const MyHand = () => {
     setSelectedCards([])
   }
 
-  const throwCards = () => {
-    throwCardsMutation.mutate({ gameId, playerSecret, cards: selectedCards, oneOpen: false })
+  const throwCards = ({ oneOpen = false }: { oneOpen?: boolean }) => {
+    throwCardsMutation.mutate({ gameId, playerSecret, cards: selectedCards, oneOpen })
     setSelectedCards([])
   }
 
@@ -167,7 +169,19 @@ export const MyHand = () => {
   }
 
   const handleThrowPress = () => {
-    throwCards()
+    throwCards({ oneOpen: false })
+  }
+
+  const handleOneOpenPress = () => {
+    throwCards({ oneOpen: true })
+  }
+
+  const handleAcceptOneOpenPress = () => {
+    answerOneOpenMutation.mutate({ gameId, playerSecret, acceptOpen: true })
+  }
+
+  const handleRejectOneOpenPress = () => {
+    answerOneOpenMutation.mutate({ gameId, playerSecret, acceptOpen: false })
   }
 
   const handleAcceptChicagoPress = () => {
@@ -193,7 +207,15 @@ export const MyHand = () => {
     }
   }
 
-  const { isMyTurn, myCards, roundPhase, gamePhase } = snapshot
+  const handleFourOfAKindPointsPress = () => {
+    answerFourOfAKindMutation.mutate({ gameId, playerSecret, answer: 'points' })
+  }
+
+  const handleFourOfAKindZeroOthersPress = () => {
+    answerFourOfAKindMutation.mutate({ gameId, playerSecret, answer: 'reset_others' })
+  }
+
+  const { isMyTurn, myCards, roundPhase, gamePhase, oneOpenAvailable, rules } = snapshot
   const sortedCards = sortBySuitAndValue(myCards)
   const canPlay = isMyTurn && ['tricking', 'throwing'].includes(roundPhase)
 
@@ -223,16 +245,30 @@ export const MyHand = () => {
                   switch (roundPhase) {
                     case 'throwing':
                       return (
-                        <Button
-                          style={getThrowButtonStyle()}
-                          onClick={handleThrowPress}
-                          variant="solid"
-                          colorScheme={selectedCards.length > 0 ? 'green' : 'blue'}
-                          borderRadius="3xl"
-                          isDisabled={!canPlay}
-                        >
-                          {selectedCards.length > 0 ? 'Throw' : 'Pass'}
-                        </Button>
+                        <HStack spacing="2" justifyContent="center">
+                          <Button
+                            style={getThrowButtonStyle()}
+                            onClick={handleThrowPress}
+                            variant="solid"
+                            colorScheme={selectedCards.length > 0 ? 'green' : 'blue'}
+                            borderRadius="3xl"
+                            isDisabled={!canPlay}
+                          >
+                            {selectedCards.length > 0 ? `Throw ${selectedCards.length}` : 'Pass'}
+                          </Button>
+                          {oneOpenAvailable && selectedCards.length === 1 && (
+                            <Button
+                              style={getThrowButtonStyle()}
+                              onClick={handleOneOpenPress}
+                              variant="solid"
+                              colorScheme={'blue'}
+                              borderRadius="3xl"
+                              isDisabled={!canPlay}
+                            >
+                              1 Open
+                            </Button>
+                          )}
+                        </HStack>
                       )
                     case 'tricking':
                       return (
@@ -277,20 +313,49 @@ export const MyHand = () => {
                       )
                     case 'asking_four_of_a_kind':
                       return (
-                        <Button variant="solid" colorScheme="green" borderRadius="3xl">
-                          Ask Four of a Kind
-                        </Button>
+                        isMyTurn && (
+                          <HStack spacing="2" justifyContent="center">
+                            <Button
+                              onClick={handleFourOfAKindPointsPress}
+                              variant="solid"
+                              colorScheme="green"
+                              borderRadius="3xl"
+                            >
+                              {rules.handPoints.fourOfAKind} points
+                            </Button>
+                            <Button
+                              onClick={handleFourOfAKindZeroOthersPress}
+                              variant="solid"
+                              colorScheme="red"
+                              borderRadius="3xl"
+                            >
+                              Zero others
+                            </Button>
+                          </HStack>
+                        )
                       )
                     case 'asking_one_open':
                       return (
-                        <Button
-                          onClick={handlePlayPress}
-                          variant="solid"
-                          colorScheme="green"
-                          borderRadius="3xl"
-                        >
-                          Ask One Open
-                        </Button>
+                        isMyTurn && (
+                          <HStack spacing="2" justifyContent="center">
+                            <Button
+                              onClick={handleAcceptOneOpenPress}
+                              variant="solid"
+                              colorScheme="green"
+                              borderRadius="3xl"
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              onClick={handleRejectOneOpenPress}
+                              variant="solid"
+                              colorScheme="red"
+                              borderRadius="3xl"
+                            >
+                              Reject
+                            </Button>
+                          </HStack>
+                        )
                       )
                     default:
                       return null

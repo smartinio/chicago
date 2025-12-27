@@ -34,6 +34,9 @@ export type Snapshot = {
   rules: Game['rules']
   trickCount: number
   chicagoCallerId?: string
+  roundWinnerId?: string
+  openCard?: Card
+  oneOpenAvailable: boolean
 }
 
 const createPlayerSnapshotList = (game: Game): PlayerSnapshot[] => {
@@ -86,5 +89,10 @@ export const createSnapshot = (params: { player: Player; game: Game }): Snapshot
     canStart,
     rules: game.rules,
     chicagoCallerId: game.round.chicagoCaller?.id,
+    roundWinnerId: game.round.winner?.id,
+    openCard: game.round.openCard,
+    oneOpenAvailable:
+      game.rules.oneOpenMode === 'all' ||
+      game.round.throwCycles.length === game.rules.numberOfThrows,
   }
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { getGameAsCurrentPlayer } from 'game/store'
-import { Errors, isError, Player, Results, Suit } from 'game/types'
+import { Card, Errors, Game, isError, Player, Results, Suit } from 'game/types'
 import { decideWinningPlayedCard, getPlayerNextTo, getPlayersWithBestHand } from 'game/utils'
 import { last } from 'utils/last'
 import { mutate } from 'game/mutations'
@@ -8,6 +8,7 @@ import { schemas } from 'shared/schemas'
 import { publicProcedure } from 'server/trpc'
 import { updateClients } from 'game/emitter'
 import { logger } from 'game/logger'
+import { CARDS } from 'game/constants'
 
 export const playCard = publicProcedure
   .input(
@@ -61,8 +62,13 @@ export const playCard = publicProcedure
     }
 
     const outcome = (() => {
-      mutate.playCard({ trick, player, card })
-      mutate.addEvent({ game, event: { actor: player, action: 'played_card', card } })
+      if (!otherPlayersCanWinRound(game, player, card)) {
+        mutate.makeItRain({ game, player, card })
+        mutate.addEvent({ game, event: { actor: player, action: 'made_it_rain' } })
+      } else {
+        mutate.playCard({ trick, player, card })
+        mutate.addEvent({ game, event: { actor: player, action: 'played_card', card } })
+      }
 
       const { chicagoCaller } = game.round
       const { winning } = decideWinningPlayedCard({ round: game.round })
@@ -71,7 +77,7 @@ export const playCard = publicProcedure
         if (winning.player.id !== chicagoCaller.id) {
           mutate.givePoints({ player: chicagoCaller, points: -15 })
           mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_round' } })
-          mutate.endRound({ game })
+          mutate.endRound({ game, roundWinner: winning.player })
 
           return Results.ROUND_OVER
         }
@@ -114,7 +120,7 @@ export const playCard = publicProcedure
               })
             }
           }
-          mutate.endRound({ game })
+          mutate.endRound({ game, roundWinner: winning.player })
           return Results.ROUND_OVER
         }
 
@@ -133,4 +139,92 @@ export const playCard = publicProcedure
 
 const canPlayerFollowSuit = (params: { player: Player; suit: Suit }) => {
   return Array.from(params.player.cards).some((card) => card.suit === params.suit)
+}
+
+const SUITS: Suit[] = ['spades', 'clubs', 'hearts', 'diamonds']
+
+/** Returns false (make it rain) when current player is guaranteed to win all remaining tricks. */
+const otherPlayersCanWinRound = (game: Game, player: Player, card: Card): boolean => {
+  const dominated = (card: Card, maxByOpponent: number) => card.value > maxByOpponent
+
+  // Build game state
+  const { voids, maxBySuit } = buildPublicKnowledge(game, player)
+  const remaining = Array.from(player.cards).filter((c) => c.id !== card.id)
+  const currentTrick = last(game.round.tricks)
+  const tricksPlayed = game.round.tricks.filter((t) => t.playedCards.length === game.players.length)
+  const tricksRemaining = 4 - tricksPlayed.length // 5 total, minus completed, minus current
+
+  // Check if a card is unbeatable: highest remaining OR all opponents void in suit
+  const isUnbeatable = (c: Card) => voids.allVoidIn(c.suit) || dominated(c, maxBySuit[c.suit])
+
+  // Last trick: just check if current card wins
+  if (tricksRemaining <= 0) {
+    if (!currentTrick?.playedCards.length) {
+      // Leading last trick
+      return !isUnbeatable(card)
+    }
+    // Following in last trick
+    const leadSuit = currentTrick.playedCards[0].card.suit
+    const bestPlayed = Math.max(
+      ...currentTrick.playedCards.map((pc) => (pc.card.suit === leadSuit ? pc.card.value : 0))
+    )
+    if (card.suit !== leadSuit || card.value <= bestPlayed) return true
+
+    const playedIds = new Set(currentTrick.playedCards.map((pc) => pc.player.id))
+    const canBeat = game.players.some(
+      (p) =>
+        p.id !== player.id &&
+        !playedIds.has(p.id) &&
+        !voids.isVoid(p.id, leadSuit) &&
+        maxBySuit[leadSuit] > card.value
+    )
+    return canBeat
+  }
+
+  // Multiple tricks: count guaranteed wins
+  const wins = SUITS.reduce((count, suit) => {
+    const cards = remaining.filter((c) => c.suit === suit).sort((a, b) => b.value - a.value)
+    if (voids.allVoidIn(suit)) return count + cards.length
+    const max = maxBySuit[suit]
+    return count + cards.filter((c) => c.value > max).length
+  }, 0)
+
+  return wins < tricksRemaining
+}
+
+/** Extracts publicly known information: who is void in which suits, and max opponent card per suit. */
+const buildPublicKnowledge = (game: Game, player: Player) => {
+  const opponents = game.players.filter((p) => p.id !== player.id)
+  const voidSets = new Map(opponents.map((p) => [p.id, new Set<Suit>()]))
+
+  // Track voids from failed suit-follows
+  for (const trick of game.round.tricks) {
+    if (!trick.playedCards.length) continue
+    const leadSuit = trick.playedCards[0].card.suit
+    for (const { player: p, card } of trick.playedCards) {
+      if (p.id !== player.id && card.suit !== leadSuit) {
+        voidSets.get(p.id)!.add(leadSuit)
+      }
+    }
+  }
+
+  // Compute max unaccounted card per suit (what opponents might have)
+  const played = new Set(game.round.tricks.flatMap((t) => t.playedCards.map((pc) => pc.card.id)))
+  const owned = new Set(Array.from(player.cards).map((c) => c.id))
+  const unaccounted = CARDS.filter((c) => !played.has(c.id) && !owned.has(c.id))
+
+  const maxBySuit = Object.fromEntries(
+    SUITS.map((s) => [
+      s,
+      Math.max(0, ...unaccounted.filter((c) => c.suit === s).map((c) => c.value)),
+    ])
+  ) as Record<Suit, number>
+
+  return {
+    voids: {
+      isVoid: (id: string, suit: Suit) => voidSets.get(id)?.has(suit) ?? false,
+      allVoidIn: (suit: Suit) => opponents.every((p) => voidSets.get(p.id)!.has(suit)),
+    },
+    maxBySuit,
+  }
 }

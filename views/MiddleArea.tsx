@@ -2,6 +2,7 @@ import { Text, Flex, Button } from '@chakra-ui/react'
 import { usePlayerGame, useSnapshot } from 'store'
 import { defaultDataHandler } from 'utils/data'
 import { trpc } from 'utils/trpc'
+import { PlayingCard } from 'views/PlayingCard'
 
 export const MiddleArea = () => {
   const { snapshot } = useSnapshot()
@@ -17,11 +18,8 @@ export const MiddleArea = () => {
     startNewRoundMutation.mutate({ gameId, dealerSecret: playerSecret })
   }
 
-  const { gamePhase, roundPhase, isMyTurn, currentPlayerId, canStart } = snapshot
-  const currentPlayerName = snapshot.players.find((p) => p.id === currentPlayerId)?.name
-  const possessiveCurrentPlayer = currentPlayerName?.endsWith('s')
-    ? `${currentPlayerName}'`
-    : `${currentPlayerName}'s`
+  const { gamePhase, roundPhase, openCard, canStart } = snapshot
+  const openOffering = openCard ? <PlayingCard card={openCard} width="40px" /> : null
 
   return (
     <Flex direction="row" justify="center" align="center" height="100px">
@@ -41,7 +39,9 @@ export const MiddleArea = () => {
             if (roundPhase === 'over') return 'Deal cards'
           })()}
         </Button>
-      ) : null}
+      ) : (
+        openOffering
+      )}
     </Flex>
   )
 }

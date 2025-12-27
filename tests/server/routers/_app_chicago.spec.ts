@@ -362,6 +362,123 @@ describe('Chicago: Throwing Phase', () => {
 
       expect(result).toBe(Errors.CARD_NOT_IN_HAND)
     })
+
+    test('oneOpen triggers asking_one_open phase on final throw cycle', async () => {
+      const { game } = await setupGame(caller, 4)
+      game.rules.oneOpenMode = 'last' // oneOpen only allowed on last cycle
+      game.rules.numberOfThrows = 1 // Make this the only (and thus final) cycle
+      await startRound(caller, game)
+
+      const player = game.currentPlayer
+      const initialCardCount = player.cards.size
+      const cardToThrow = Array.from(player.cards)[0]
+
+      const result = await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player.secret,
+        cards: [{ id: cardToThrow.id }],
+        oneOpen: true,
+      })
+
+      expect(result).toBe(Results.THREW_CARDS)
+      expect(game.round.phase).toBe('asking_one_open')
+      expect(game.round.openCard).toBeDefined()
+
+      // Verify card mechanics:
+      // - Thrown card should be removed from player's hand
+      expect(player.cards.has(cardToThrow)).toBe(false)
+      // - Player should have same number of cards (threw 1, but hasn't drawn replacement yet)
+      expect(player.cards.size).toBe(initialCardCount - 1)
+    })
+
+    test('oneOpen is forbidden before final throw cycle when oneOpenMode is last', async () => {
+      const { game } = await setupGame(caller, 4)
+      game.rules.oneOpenMode = 'last'
+      game.rules.numberOfThrows = 3 // 3 cycles, so cycle 1 is not the last
+      await startRound(caller, game)
+
+      const player = game.currentPlayer
+      const cardToThrow = Array.from(player.cards)[0]
+
+      const result = await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player.secret,
+        cards: [{ id: cardToThrow.id }],
+        oneOpen: true,
+      })
+
+      expect(result).toBe(Errors.FORBIDDEN)
+    })
+
+    test('answerOneOpen accepts the open card and returns to throwing', async () => {
+      const { game } = await setupGame(caller, 4)
+      game.rules.oneOpenMode = 'last'
+      game.rules.numberOfThrows = 1
+      await startRound(caller, game)
+
+      const player = game.currentPlayer
+      const cardToThrow = Array.from(player.cards)[0]
+
+      // Trigger oneOpen
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player.secret,
+        cards: [{ id: cardToThrow.id }],
+        oneOpen: true,
+      })
+
+      expect(game.round.phase).toBe('asking_one_open')
+      const openCard = game.round.openCard!
+      expect(openCard).toBeDefined()
+
+      // Accept the open card
+      const result = await caller.answerOneOpen({
+        gameId: game.id,
+        playerSecret: player.secret,
+        acceptOpen: true,
+      })
+
+      expect(result).toBe(Results.ANSWERED_ONE_OPEN)
+      // Open card should be cleared
+      expect(game.round.openCard).toBeUndefined()
+      // Player should now have the open card
+      expect(player.cards.has(openCard)).toBe(true)
+      // Should have moved past throwing phase (since numberOfThrows=1, this was the last cycle)
+      expect(game.round.phase).not.toBe('asking_one_open')
+    })
+
+    test('answerOneOpen rejects the open card and draws a new one', async () => {
+      const { game } = await setupGame(caller, 4)
+      game.rules.oneOpenMode = 'last'
+      game.rules.numberOfThrows = 1
+      await startRound(caller, game)
+
+      const player = game.currentPlayer
+      const cardToThrow = Array.from(player.cards)[0]
+
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player.secret,
+        cards: [{ id: cardToThrow.id }],
+        oneOpen: true,
+      })
+
+      const openCard = game.round.openCard!
+      const cardCountBefore = player.cards.size
+
+      // Reject the open card
+      const result = await caller.answerOneOpen({
+        gameId: game.id,
+        playerSecret: player.secret,
+        acceptOpen: false,
+      })
+
+      expect(result).toBe(Results.ANSWERED_ONE_OPEN)
+      // Open card should NOT be in player's hand
+      expect(player.cards.has(openCard)).toBe(false)
+      // Player should have drawn a replacement
+      expect(player.cards.size).toBe(cardCountBefore + 1)
+    })
   })
 
   describe('Throw cycles and scoring', () => {
@@ -1307,6 +1424,39 @@ describe('Chicago: Victory Conditions', () => {
 
     expect(game.phase).toBe('over')
   })
+
+  test('Restarting game after victory clears takenChicago status', async () => {
+    const { game } = await setupGame(caller, 4)
+
+    // Player 1 wins
+    game.players[0].score = 55
+    game.players[0].takenChicago = true
+
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+    await declineAllChicago(caller, game)
+    await playAllTricks(caller, game)
+
+    while (game.round.phase === 'asking_four_of_a_kind') {
+      await caller.answerFourOfAKind({
+        gameId: game.id,
+        playerSecret: game.currentPlayer.secret,
+        answer: 'points',
+      })
+    }
+
+    expect(game.phase).toBe('over')
+    expect(game.players[0].takenChicago).toBe(true)
+
+    // Restart the game
+    await startRound(caller, game)
+
+    // All players should have takenChicago reset
+    for (const player of game.players) {
+      expect(player.takenChicago).toBe(false)
+      expect(player.score).toBe(0)
+    }
+  })
 })
 
 // ============================================================================
@@ -1371,6 +1521,283 @@ describe('Chicago: Player Management', () => {
     })
 
     expect(game.round.phase).toBe('killed')
+  })
+})
+
+// ============================================================================
+// TESTS: MAKE IT RAIN
+// ============================================================================
+
+describe('Chicago: Make It Rain', () => {
+  const caller = createCaller()
+
+  test('Player with flush triggers make it rain when they have all cards of that suit', async () => {
+    // P2 has all spades (A, K, Q, J, 10), no one else has spades
+    // Since P2 has ALL the spades, they're guaranteed to win immediately on first play
+    // No unaccounted spades exist that could beat them
+    const flushHands: HandFixture = {
+      player1: [
+        card('clubs:2'),
+        card('hearts:3'),
+        card('diamonds:4'),
+        card('clubs:5'),
+        card('hearts:6'),
+      ],
+      player2: [
+        card('spades:14'),
+        card('spades:13'),
+        card('spades:12'),
+        card('spades:11'),
+        card('spades:10'),
+      ],
+      player3: [
+        card('clubs:7'),
+        card('hearts:8'),
+        card('diamonds:9'),
+        card('clubs:3'),
+        card('hearts:4'),
+      ],
+      player4: [
+        card('diamonds:2'),
+        card('clubs:8'),
+        card('hearts:9'),
+        card('diamonds:5'),
+        card('clubs:4'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(flushHands))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+    await declineAllChicago(caller, game)
+
+    const player2 = game.players[1]
+
+    // P2 is current player (first to play after dealer in tricking)
+    expect(game.currentPlayer.id).toBe(player2.id)
+
+    // P2 leads with Ace of spades
+    // Since P2 has ALL spades (no unaccounted spades exist), make it rain triggers immediately
+    const aceOfSpades = Array.from(player2.cards).find((c) => c.value === 14)!
+    const result = await caller.playCard({
+      gameId: game.id,
+      playerSecret: player2.secret,
+      card: { id: aceOfSpades.id },
+    })
+
+    // Make it rain should complete the round instantly
+    expect(result).toBe(Results.ROUND_OVER)
+    expect(game.round.phase).toBe('over')
+    expect(game.round.tricks.length).toBe(5) // All 5 tricks should be completed
+    expect(game.round.winner?.id).toBe(player2.id)
+
+    // Check that the made_it_rain event was recorded
+    const madeItRainEvent = game.events.find((e) => e.action === 'made_it_rain')
+    expect(madeItRainEvent).toBeDefined()
+    expect(madeItRainEvent?.actor).toBe(player2)
+  })
+
+  test('Make it rain triggers when player has all highest remaining cards in their suit', async () => {
+    // P2 has all clubs from 10-14 (A, K, Q, J, 10)
+    // Since they have ALL the clubs and the highest ones, make it rain triggers
+    // (No four of a kind to avoid asking_four_of_a_kind phase)
+    const allHighClubsHands: HandFixture = {
+      player1: [
+        card('hearts:2'),
+        card('hearts:3'),
+        card('hearts:4'),
+        card('hearts:5'),
+        card('hearts:6'),
+      ],
+      player2: [
+        card('clubs:14'), // Ace of clubs
+        card('clubs:13'), // King of clubs
+        card('clubs:12'), // Queen of clubs
+        card('clubs:11'), // Jack of clubs
+        card('clubs:10'), // 10 of clubs
+      ],
+      player3: [
+        card('spades:2'),
+        card('spades:3'),
+        card('spades:4'),
+        card('spades:5'),
+        card('spades:6'),
+      ],
+      player4: [
+        card('diamonds:2'),
+        card('diamonds:3'),
+        card('diamonds:4'),
+        card('diamonds:5'),
+        card('diamonds:6'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(allHighClubsHands))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+    await declineAllChicago(caller, game)
+
+    const player2 = game.players[1]
+
+    // P2 is current player
+    expect(game.currentPlayer.id).toBe(player2.id)
+    expect(game.round.phase).toBe('tricking')
+
+    // P2 leads with Ace of clubs
+    // Since P2 has ALL clubs (10-14) and no one else has clubs,
+    // P2 is guaranteed to win all tricks - make it rain should trigger
+    const aceOfClubs = Array.from(player2.cards).find((c) => c.value === 14 && c.suit === 'clubs')!
+    const result = await caller.playCard({
+      gameId: game.id,
+      playerSecret: player2.secret,
+      card: { id: aceOfClubs.id },
+    })
+
+    // Make it rain should trigger immediately
+    expect(result).toBe(Results.ROUND_OVER)
+    expect(game.round.phase).toBe('over')
+    expect(game.round.tricks.length).toBe(5)
+
+    // Check made_it_rain event
+    const madeItRainEvent = game.events.find((e) => e.action === 'made_it_rain')
+    expect(madeItRainEvent).toBeDefined()
+  })
+
+  test('Make it rain does NOT trigger when opponent could still beat current card', async () => {
+    // P2 has high spades but P4 has the Ace of spades
+    const beatable: HandFixture = {
+      player1: [
+        card('clubs:2'),
+        card('hearts:3'),
+        card('diamonds:4'),
+        card('clubs:5'),
+        card('hearts:6'),
+      ],
+      player2: [
+        card('spades:13'), // King (not Ace!)
+        card('spades:12'),
+        card('spades:11'),
+        card('spades:10'),
+        card('spades:9'),
+      ],
+      player3: [
+        card('clubs:7'),
+        card('hearts:8'),
+        card('diamonds:9'),
+        card('clubs:3'),
+        card('hearts:4'),
+      ],
+      player4: [
+        card('spades:14'), // ACE of spades - can beat P2's King
+        card('clubs:8'),
+        card('hearts:9'),
+        card('diamonds:5'),
+        card('clubs:4'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(beatable))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+    await declineAllChicago(caller, game)
+
+    const player2 = game.players[1]
+
+    // P2 leads with King of spades
+    expect(game.currentPlayer.id).toBe(player2.id)
+    const result = await caller.playCard({
+      gameId: game.id,
+      playerSecret: player2.secret,
+      card: { id: Array.from(player2.cards).find((c) => c.value === 13)!.id },
+    })
+
+    // Should NOT trigger make it rain - P4 has Ace of spades
+    expect(result).toBe(Results.PLAYED_TRICK)
+    expect(game.round.phase).toBe('tricking')
+
+    // No made_it_rain event
+    const madeItRainEvent = game.events.find((e) => e.action === 'made_it_rain')
+    expect(madeItRainEvent).toBeUndefined()
+  })
+
+  test('Make it rain on last trick when player has highest card', async () => {
+    // Set up so P2 has the highest remaining card on the last trick
+    const lastTrickWin: HandFixture = {
+      player1: [
+        card('clubs:2'),
+        card('clubs:3'),
+        card('clubs:4'),
+        card('clubs:5'),
+        card('clubs:6'),
+      ],
+      player2: [
+        card('clubs:14'), // Ace of clubs - highest
+        card('clubs:13'),
+        card('clubs:12'),
+        card('clubs:11'),
+        card('clubs:10'),
+      ],
+      player3: [
+        card('clubs:7'),
+        card('clubs:8'),
+        card('clubs:9'),
+        card('hearts:2'),
+        card('hearts:3'),
+      ],
+      player4: [
+        card('hearts:4'),
+        card('hearts:5'),
+        card('hearts:6'),
+        card('hearts:7'),
+        card('hearts:8'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(lastTrickWin))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+    await declineAllChicago(caller, game)
+
+    // Play through 4 tricks normally, saving P2's ace for trick 5
+    for (let trick = 0; trick < 4; trick++) {
+      for (let i = 0; i < 4; i++) {
+        const player = game.currentPlayer
+        const hand = Array.from(player.cards)
+        // Play lowest card to save high cards
+        const cardToPlay = hand.sort((a, b) => a.value - b.value)[0]
+        await caller.playCard({
+          gameId: game.id,
+          playerSecret: player.secret,
+          card: { id: cardToPlay.id },
+        })
+        if (game.round.phase !== 'tricking') break
+      }
+      if (game.round.phase !== 'tricking') break
+    }
+
+    // On trick 5, if still tricking, check if make it rain triggers
+    if (game.round.phase === 'tricking') {
+      // P2 should lead with their remaining high card (Ace)
+      const player2 = game.players[1]
+      if (game.currentPlayer.id === player2.id && player2.cards.size > 0) {
+        const aceCard = Array.from(player2.cards).find((c) => c.value === 14)
+        if (aceCard) {
+          const result = await caller.playCard({
+            gameId: game.id,
+            playerSecret: player2.secret,
+            card: { id: aceCard.id },
+          })
+          // On last trick with highest card, should trigger make it rain
+          expect(result).toBe(Results.ROUND_OVER)
+        }
+      }
+    }
+
+    expect(game.round.phase).toBe('over')
   })
 })
 

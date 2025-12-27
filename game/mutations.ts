@@ -28,17 +28,18 @@ export const mutate = {
     params.game.phase = 'over'
   },
 
-  endRound: (params: { game: Game }) => {
+  endRound: (params: { game: Game; roundWinner: Player }) => {
     const { game } = params
 
     game.round.phase = 'over'
+    game.round.winner = params.roundWinner
     game.dealer = getPlayerNextTo(game.dealer, game)
     game.currentPlayer = getPlayerNextTo(game.dealer, game)
 
     // Check for winner: must have 52+ points AND have taken Chicago at least once
-    const winner = game.players.some((p) => p.score >= 52 && p.takenChicago)
+    const gameWinner = game.players.some((p) => p.score >= 52 && p.takenChicago)
 
-    if (winner) {
+    if (gameWinner) {
       mutate.finishGame({ game })
     }
   },
@@ -81,7 +82,7 @@ export const mutate = {
     game.deck = dealCards(game)
   },
 
-  throwCards: (params: { game: Game; player: Player; cards: Card[] }) => {
+  exchangeCards: (params: { game: Game; player: Player; cards: Card[] }) => {
     const { game, player, cards } = params
     cards.forEach((card) => player.cards.delete(card))
     game.deck.push(...cards) // add cards back to bottom of deck
@@ -98,6 +99,11 @@ export const mutate = {
   acceptCards: (params: { player: Player; cards: Card[] }) => {
     const { player, cards } = params
     cards.forEach((card) => player.cards.add(card))
+  },
+
+  removeCards: (params: { player: Player; cards: Card[] }) => {
+    const { player, cards } = params
+    cards.forEach((card) => player.cards.delete(card))
   },
 
   returnCards: (params: { game: Game; cards: Card[] }) => {
@@ -181,6 +187,7 @@ export const mutate = {
     for (const player of params.game.players) {
       player.cards.clear()
       player.score = 0
+      player.takenChicago = false
     }
   },
 
@@ -190,5 +197,60 @@ export const mutate = {
 
   setOpenCard: (params: { game: Game; card: Card | undefined }) => {
     params.game.round.openCard = params.card
+  },
+
+  /**
+   * "Make it rain" - the current player is guaranteed to win all remaining tricks.
+   * This mutation plays out all remaining cards instantly, with the player winning every trick.
+   */
+  makeItRain: (params: { game: Game; player: Player; card: Card }) => {
+    const { game, player, card } = params
+
+    // Get or create the current trick
+    let currentTrick = last(game.round.tricks)
+    if (!currentTrick) {
+      currentTrick = createTrick({ playedCards: [] })
+      game.round.tricks.push(currentTrick)
+    }
+
+    // Play the triggering card
+    currentTrick.playedCards.push({ player, card })
+    player.cards.delete(card)
+
+    // Complete the current trick by having all other players "play" placeholder cards
+    // (their actual cards don't matter since the current player wins anyway)
+    const playersInTrick = new Set(currentTrick.playedCards.map((pc) => pc.player.id))
+    for (const otherPlayer of game.players) {
+      if (!playersInTrick.has(otherPlayer.id)) {
+        const otherCard = Array.from(otherPlayer.cards)[0]
+        if (otherCard) {
+          currentTrick.playedCards.push({ player: otherPlayer, card: otherCard })
+          otherPlayer.cards.delete(otherCard)
+        }
+      }
+    }
+
+    // Play out remaining tricks - player leads and wins each one
+    while (game.round.tricks.length < 5) {
+      const newTrick = createTrick({ playedCards: [] })
+      game.round.tricks.push(newTrick)
+
+      // Player leads with their next card
+      const playerCard = Array.from(player.cards)[0]
+      if (playerCard) {
+        newTrick.playedCards.push({ player, card: playerCard })
+        player.cards.delete(playerCard)
+      }
+
+      // Other players play their cards
+      for (const otherPlayer of game.players) {
+        if (otherPlayer.id === player.id) continue
+        const otherCard = Array.from(otherPlayer.cards)[0]
+        if (otherCard) {
+          newTrick.playedCards.push({ player: otherPlayer, card: otherCard })
+          otherPlayer.cards.delete(otherCard)
+        }
+      }
+    }
   },
 }
