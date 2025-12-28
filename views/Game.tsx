@@ -94,6 +94,26 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
     }
   }, [keepAliveQuery, error])
 
+  const isFocusedRef = useRef(true)
+
+  useEffect(() => {
+    const listener = () => {
+      isFocusedRef.current = document.hasFocus()
+    }
+    document.addEventListener('visibilitychange', listener)
+    return () => document.removeEventListener('visibilitychange', listener)
+  }, [])
+
+  useEffect(() => {
+    if (snapshot?.isMyTurn && !isFocusedRef.current) {
+      const audio = new Audio('/audio/yourturn.ogg')
+
+      audio.play().catch((error) => {
+        console.error('Error playing audio', error)
+      })
+    }
+  }, [snapshot?.isMyTurn])
+
   if (!snapshot && error === Errors.FORBIDDEN) {
     return <Start />
   }
