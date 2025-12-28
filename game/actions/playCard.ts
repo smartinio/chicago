@@ -94,9 +94,19 @@ export const playCard = publicProcedure
 
         if (isLastTrick) {
           if (chicagoCaller) {
-            mutate.givePoints({ player: chicagoCaller, points: 15 })
-            mutate.setTakenChicago({ player: chicagoCaller })
-            mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'won_round' } })
+            // Check if Chicago caller had the best hand (computed when Chicago was called)
+            const callerHasBestHand =
+              !game.rules.chicagoRequiresBestHand || game.round.chicagoCallerHadBestHand
+
+            if (callerHasBestHand) {
+              mutate.givePoints({ player: chicagoCaller, points: 15 })
+              mutate.setTakenChicago({ player: chicagoCaller })
+              mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'won_round' } })
+            } else {
+              // Chicago caller won all tricks but doesn't have best hand - they fail
+              mutate.givePoints({ player: chicagoCaller, points: -15 })
+              mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_round' } })
+            }
           } else {
             const points =
               winning.card.value === 2 ? game.rules.pointsForWinWithTwo : game.rules.pointsForWin

@@ -144,8 +144,9 @@ export const mutate = {
     }
   },
 
-  setChicagoCaller: (params: { game: Game; player: Player }) => {
+  setChicagoCaller: (params: { game: Game; player: Player; hadBestHand: boolean }) => {
     params.game.round.chicagoCaller = params.player
+    params.game.round.chicagoCallerHadBestHand = params.hadBestHand
   },
 
   setCurrentPlayer: (params: { game: Game; player: Player }) => {

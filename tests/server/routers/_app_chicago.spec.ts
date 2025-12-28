@@ -838,6 +838,149 @@ describe('Chicago: Chicago Declaration', () => {
       expect(player2.score).toBe(initialScore + 15)
       expect(player2.takenChicago).toBe(true)
     })
+
+    test('Chicago fails if caller wins all tricks but does not have best hand (chicagoRequiresBestHand)', async () => {
+      // P2 wins all tricks (has all spades) but P3 has a better poker hand (three of a kind)
+      // With chicagoRequiresBestHand=true, P2 should fail Chicago (-15 points)
+      const chicagoNoBestHand: HandFixture = {
+        player1: [
+          card('clubs:2'),
+          card('hearts:3'),
+          card('diamonds:4'),
+          card('clubs:5'),
+          card('hearts:6'),
+        ],
+        player2: [
+          card('spades:14'), // Ace high spades - wins all tricks
+          card('spades:13'),
+          card('spades:12'),
+          card('spades:11'),
+          card('spades:10'),
+          // This is a straight flush! Actually that's the best hand...
+        ],
+        player3: [
+          card('clubs:7'),
+          card('hearts:8'),
+          card('diamonds:9'),
+          card('clubs:3'),
+          card('hearts:4'),
+        ],
+        player4: [
+          card('diamonds:2'),
+          card('clubs:8'),
+          card('hearts:9'),
+          card('diamonds:5'),
+          card('clubs:4'),
+        ],
+      }
+      // Actually P2 has a royal straight flush, so they'd have the best hand.
+      // Let me create a scenario where P2 wins tricks but doesn't have best hand.
+      // P2 needs to win all tricks but have a worse poker hand than someone else.
+      
+      // New scenario: P2 has all the high cards spread across suits (no poker hand)
+      // P3 has three of a kind
+      const chicagoNoBestHandFixed: HandFixture = {
+        player1: [
+          card('clubs:2'),
+          card('hearts:3'),
+          card('diamonds:4'),
+          card('clubs:5'),
+          card('hearts:6'),
+        ],
+        player2: [
+          card('spades:14'), // High cards, no poker hand - just high card
+          card('hearts:13'),
+          card('diamonds:12'),
+          card('clubs:11'),
+          card('spades:9'),
+        ],
+        player3: [
+          card('clubs:7'), // Three 7s - three of a kind
+          card('hearts:7'),
+          card('diamonds:7'),
+          card('clubs:3'),
+          card('hearts:4'),
+        ],
+        player4: [
+          card('diamonds:2'),
+          card('clubs:8'),
+          card('hearts:9'),
+          card('diamonds:5'),
+          card('spades:4'),
+        ],
+      }
+      mockDealCards.mockImplementation(createMockDealCards(chicagoNoBestHandFixed))
+
+      const { game } = await setupGame(caller, 4)
+      // Ensure the rule is enabled
+      game.rules.chicagoRequiresBestHand = true
+      
+      await startRound(caller, game)
+      await skipAllThrows(caller, game)
+
+      const player2 = game.players[1]
+      const player3 = game.players[2]
+
+      // Verify P3 has the best hand (three of a kind)
+      const p3Cards = Array.from(player3.cards)
+      const sevenCount = p3Cards.filter((c) => c.value === 7).length
+      expect(sevenCount).toBe(3)
+
+      // Navigate to player 2 in Chicago asking
+      while (game.currentPlayer.id !== player2.id && game.round.phase === 'asking_chicago') {
+        await caller.answerChicago({
+          gameId: game.id,
+          playerSecret: game.currentPlayer.secret,
+          takeChicago: false,
+        })
+      }
+
+      const initialScore = player2.score
+
+      await caller.answerChicago({
+        gameId: game.id,
+        playerSecret: player2.secret,
+        takeChicago: true,
+      })
+
+      expect(game.round.chicagoCaller?.id).toBe(player2.id)
+
+      // Play all 5 tricks - P2 leads and wins each one with high cards
+      for (let trick = 0; trick < 5; trick++) {
+        if (game.round.phase !== 'tricking') break
+
+        for (let i = 0; i < 4; i++) {
+          if (game.round.phase !== 'tricking') break
+
+          const currentPlayer = game.currentPlayer
+          const hand = Array.from(currentPlayer.cards)
+
+          const currentTrick = game.round.tricks[game.round.tricks.length - 1]
+          const leadSuit = currentTrick?.playedCards[0]?.card.suit
+
+          let cardToPlay = hand[0]
+          if (leadSuit) {
+            const suitCards = hand.filter((c) => c.suit === leadSuit)
+            if (suitCards.length > 0) {
+              cardToPlay = suitCards.sort((a, b) => b.value - a.value)[0]
+            }
+          } else {
+            cardToPlay = hand.sort((a, b) => b.value - a.value)[0]
+          }
+
+          await caller.playCard({
+            gameId: game.id,
+            playerSecret: currentPlayer.secret,
+            card: { id: cardToPlay.id },
+          })
+        }
+      }
+
+      // P2 won all tricks but P3 has better hand - P2 should fail Chicago
+      expect(game.round.phase).toBe('over')
+      expect(player2.score).toBe(initialScore - 15)
+      expect(player2.takenChicago).toBe(false)
+    })
   })
 
   describe('Chicago failure', () => {

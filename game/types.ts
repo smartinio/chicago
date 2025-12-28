@@ -39,6 +39,7 @@ export type Round = {
   phase: RoundPhase
   throwCycles: boolean[][]
   chicagoCaller?: Player
+  chicagoCallerHadBestHand?: boolean
   openCard?: Card
   winner?: Player
 }
