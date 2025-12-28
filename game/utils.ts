@@ -91,7 +91,10 @@ const getHandType = (hand: Set<Card>): HandType | undefined => {
 }
 
 const isRoyalStraightFlush = (hand: Set<Card>): boolean => {
-  return isStraightFlush(hand) && Array.from(hand).some((card) => card.value === 14)
+  if (!isStraightFlush(hand)) return false
+  const values = Array.from(hand).map((card) => card.value)
+  // Royal straight flush must be 10-J-Q-K-A (values 10, 11, 12, 13, 14)
+  return values.includes(10) && values.includes(14)
 }
 
 const isStraightFlush = (hand: Set<Card>): boolean => {
@@ -120,7 +123,15 @@ const isFourOfAKind = (hand: Set<Card>): boolean => {
 }
 
 const isFullHouse = (hand: Set<Card>): boolean => {
-  return isThreeOfAKind(hand) && isTwoPair(hand)
+  const cards = Array.from(hand)
+  const valueCounts = new Map<Value, number>()
+
+  for (const card of cards) {
+    valueCounts.set(card.value, (valueCounts.get(card.value) ?? 0) + 1)
+  }
+
+  const counts = Array.from(valueCounts.values()).sort((a, b) => b - a)
+  return counts.length === 2 && counts[0] === 3 && counts[1] === 2
 }
 
 const isThreeOfAKind = (hand: Set<Card>): boolean => {

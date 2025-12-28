@@ -231,12 +231,15 @@ export const mutate = {
     }
 
     // Play out remaining tricks - player leads and wins each one
+    // Sort player's cards descending so lowest (potentially a 2) is played last for bonus points
+    const sortedPlayerCards = Array.from(player.cards).sort((a, b) => b.value - a.value)
+
     while (game.round.tricks.length < 5) {
       const newTrick = createTrick({ playedCards: [] })
       game.round.tricks.push(newTrick)
 
-      // Player leads with their next card
-      const playerCard = Array.from(player.cards)[0]
+      // Player leads with their next highest card
+      const playerCard = sortedPlayerCards.shift()
       if (playerCard) {
         newTrick.playedCards.push({ player, card: playerCard })
         player.cards.delete(playerCard)

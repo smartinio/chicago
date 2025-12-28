@@ -1723,6 +1723,77 @@ describe('Chicago: Make It Rain', () => {
     expect(madeItRainEvent).toBeUndefined()
   })
 
+  test('Make it rain does NOT trigger when following with a card that cannot beat the lead', async () => {
+    // P2 leads with Ace of clubs, P3 follows with King of clubs - cannot make it rain
+    // P3 has ALL remaining high cards (guaranteed wins for future tricks) but can't win THIS trick
+    // This specifically tests the bug where make it rain triggered incorrectly
+    const aceLeadsHands: HandFixture = {
+      player1: [
+        card('hearts:2'), // No clubs - will be void
+        card('hearts:3'),
+        card('hearts:4'),
+        card('hearts:5'),
+        card('hearts:6'),
+      ],
+      player2: [
+        card('clubs:14'), // Ace of clubs - leads with this, then has no more clubs
+        card('hearts:7'),
+        card('hearts:8'),
+        card('hearts:9'),
+        card('hearts:10'),
+      ],
+      player3: [
+        card('clubs:13'), // King of clubs - cannot beat Ace in current trick
+        card('clubs:12'), // Queen - highest remaining club after Ace is played
+        card('clubs:11'), // Jack
+        card('clubs:10'), // 10
+        card('clubs:9'),  // 9 - all highest remaining clubs
+      ],
+      player4: [
+        card('spades:2'), // No clubs - will be void
+        card('spades:3'),
+        card('spades:4'),
+        card('spades:5'),
+        card('spades:6'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(aceLeadsHands))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+    await declineAllChicago(caller, game)
+
+    const player2 = game.players[1]
+    const player3 = game.players[2]
+
+    // P2 leads with Ace of clubs
+    expect(game.currentPlayer.id).toBe(player2.id)
+    await caller.playCard({
+      gameId: game.id,
+      playerSecret: player2.secret,
+      card: { id: Array.from(player2.cards).find((c) => c.value === 14 && c.suit === 'clubs')!.id },
+    })
+
+    // P3 follows with King of clubs - should NOT trigger make it rain
+    // Even though P3 has ALL the remaining high clubs (Q, J, 10, 9), they can't beat the Ace
+    expect(game.currentPlayer.id).toBe(player3.id)
+    const result = await caller.playCard({
+      gameId: game.id,
+      playerSecret: player3.secret,
+      card: { id: Array.from(player3.cards).find((c) => c.value === 13 && c.suit === 'clubs')!.id },
+    })
+
+    // Should NOT trigger make it rain - P3's King doesn't beat P2's Ace
+    expect(result).toBe(Results.PLAYED_TRICK)
+    expect(game.round.phase).toBe('tricking')
+    expect(game.round.tricks.length).toBe(1) // Still on first trick
+
+    // No made_it_rain event
+    const madeItRainEvent = game.events.find((e) => e.action === 'made_it_rain')
+    expect(madeItRainEvent).toBeUndefined()
+  })
+
   test('Make it rain on last trick when player has highest card', async () => {
     // Set up so P2 has the highest remaining card on the last trick
     const lastTrickWin: HandFixture = {

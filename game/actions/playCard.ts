@@ -181,7 +181,31 @@ const otherPlayersCanWinRound = (game: Game, player: Player, card: Card): boolea
     return canBeat
   }
 
-  // Multiple tricks: count guaranteed wins
+  // If following in current trick, check if we can win it first
+  if (currentTrick?.playedCards.length) {
+    const leadSuit = currentTrick.playedCards[0].card.suit
+    const bestPlayed = Math.max(
+      ...currentTrick.playedCards.map((pc) => (pc.card.suit === leadSuit ? pc.card.value : 0))
+    )
+    // If we can't follow suit or can't beat the best card, we can't make it rain
+    if (card.suit !== leadSuit || card.value <= bestPlayed) return true
+
+    // Check if any player yet to play can beat our card
+    const playedIds = new Set(currentTrick.playedCards.map((pc) => pc.player.id))
+    const canBeat = game.players.some(
+      (p) =>
+        p.id !== player.id &&
+        !playedIds.has(p.id) &&
+        !voids.isVoid(p.id, leadSuit) &&
+        maxBySuit[leadSuit] > card.value
+    )
+    if (canBeat) return true
+  } else {
+    // Leading: check if the card we're playing is beatable
+    if (!isUnbeatable(card)) return true
+  }
+
+  // Multiple tricks: count guaranteed wins from remaining cards
   const wins = SUITS.reduce((count, suit) => {
     const cards = remaining.filter((c) => c.suit === suit).sort((a, b) => b.value - a.value)
     if (voids.allVoidIn(suit)) return count + cards.length
