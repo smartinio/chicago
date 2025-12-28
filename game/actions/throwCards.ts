@@ -97,15 +97,13 @@ export const moveToNextPhase = (params: { game: Game }) => {
 
 export const handlePostThrow = (params: { game: Game; player: Player; cycle: boolean[] }) => {
   const { game, player, cycle } = params
-  const isLastThrowInCycle = cycle.every(Boolean)
-  const isLastCycle = game.round.throwCycles.length === game.rules.numberOfThrows
 
-  let nextPlayer
+  const handleEndOfCycle = (): Player | undefined => {
+    const isLastCycle = game.round.throwCycles.length === game.rules.numberOfThrows
 
-  if (isLastThrowInCycle) {
     if (isLastCycle) {
       moveToNextPhase({ game })
-      return Results.THREW_CARDS
+      return undefined
     }
 
     mutate.addThrowCycle({ game })
@@ -115,7 +113,7 @@ export const handlePostThrow = (params: { game: Game; player: Player; cycle: boo
       if (handType === 'fourOfAKind') {
         mutate.setCurrentPlayer({ game, player })
         mutate.setRoundPhase({ game, phase: 'asking_four_of_a_kind' })
-        return Results.THREW_CARDS
+        return undefined
       }
 
       mutate.givePoints({ player, points })
@@ -125,14 +123,28 @@ export const handlePostThrow = (params: { game: Game; player: Player; cycle: boo
       })
     }
 
-    nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: game.dealer })
-  } else {
-    nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: player })
+    return mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: game.dealer })
   }
 
-  if (!nextPlayer) {
-    moveToNextPhase({ game })
+  let nextPlayer: Player | undefined
+
+  if (cycle.every(Boolean)) {
+    // Cycle was already complete before looking for next player
+    nextPlayer = handleEndOfCycle()
   } else {
+    // Look for next eligible player (this may mark ineligible players as "done")
+    nextPlayer = mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: player })
+
+    // Re-check if cycle is now complete after marking ineligible players
+    if (cycle.every(Boolean)) {
+      nextPlayer = handleEndOfCycle()
+    }
+  }
+
+  if (nextPlayer) {
     mutate.setCurrentPlayer({ game, player: nextPlayer })
+  } else if (game.round.phase === 'throwing') {
+    // Only move to next phase if we haven't already (handleEndOfCycle may have changed phase)
+    moveToNextPhase({ game })
   }
 }

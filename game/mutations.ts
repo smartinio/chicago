@@ -62,7 +62,8 @@ export const mutate = {
 
     let currentIdx = game.players.findIndex((p) => p.id === afterPlayer.id)
 
-    for (let i = 1; i < game.players.length; i++) {
+    // Check all players including wrapping back to afterPlayer
+    for (let i = 1; i <= game.players.length; i++) {
       const playerIndex = (currentIdx + i) % game.players.length
       const player = game.players[playerIndex]
 

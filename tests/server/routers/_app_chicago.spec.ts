@@ -609,6 +609,81 @@ describe('Chicago: Throwing Phase', () => {
       // Since chicagoCanBeCalledBeforeFifteen defaults to true, go to asking_chicago
       expect(game.round.phase).toBe('asking_chicago')
     })
+
+    test('Dealer below threshold can throw even if opponent is at threshold', async () => {
+      // 2-player game: P1 is dealer, P2 is at threshold
+      // P1 (dealer) should still be able to throw since they're below threshold
+      const { game } = await setupGame(caller, 2)
+
+      const player1 = game.players[0] // Dealer
+      const player2 = game.players[1]
+
+      // P1 (dealer) is below threshold, P2 is at threshold
+      player1.score = 10
+      player2.score = 46
+
+      await startRound(caller, game)
+
+      // Round should be in throwing phase, not asking_chicago
+      expect(game.round.phase).toBe('throwing')
+      // P2 is first to act (after dealer), but they're at threshold so should be skipped
+      // P1 (dealer) should be current player since they're the only one eligible
+      expect(game.currentPlayer.id).toBe(player1.id)
+    })
+
+    test('Only eligible player can throw all 3 cycles when others are at threshold', async () => {
+      // 2-player game: P1 is dealer and below threshold, P2 is at threshold
+      // P1 should be able to throw 3 times (once per cycle)
+      const { game } = await setupGame(caller, 2)
+
+      const player1 = game.players[0] // Dealer
+      const player2 = game.players[1]
+
+      // P1 is below threshold, P2 is at threshold
+      player1.score = 10
+      player2.score = 46
+
+      await startRound(caller, game)
+
+      // P1 should be able to throw in cycle 1
+      expect(game.round.phase).toBe('throwing')
+      expect(game.currentPlayer.id).toBe(player1.id)
+
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player1.secret,
+        cards: [],
+        oneOpen: false,
+      })
+
+      // After P1 throws, should move to cycle 2 (P2 is skipped)
+      // P1 should still be current player for cycle 2
+      expect(game.round.phase).toBe('throwing')
+      expect(game.round.throwCycles.length).toBe(2)
+      expect(game.currentPlayer.id).toBe(player1.id)
+
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player1.secret,
+        cards: [],
+        oneOpen: false,
+      })
+
+      // After P1's second throw, should move to cycle 3
+      expect(game.round.phase).toBe('throwing')
+      expect(game.round.throwCycles.length).toBe(3)
+      expect(game.currentPlayer.id).toBe(player1.id)
+
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player1.secret,
+        cards: [],
+        oneOpen: false,
+      })
+
+      // After P1's third throw, should move to asking_chicago (all cycles complete)
+      expect(game.round.phase).toBe('asking_chicago')
+    })
   })
 })
 
