@@ -12,12 +12,25 @@ import {
 import { CARDS } from '#game/constants'
 import { Game } from '#game/types'
 
+const rulesSchema = z.object({
+  throwScoreThreshold: z.number().min(42).max(46).optional(),
+  pointsForWin: z.number().min(2).max(5).optional(),
+  pointsForWinWithTwo: z.number().min(5).max(10).optional(),
+  numberOfThrows: z.number().min(2).max(3).optional(),
+  chicagoRequiresBestHand: z.boolean().optional(),
+  chicagoCanBeCalledBeforeFifteen: z.boolean().optional(),
+  oneOpenMode: z.enum(['all', 'last']).optional(),
+})
+
+export type RulesInput = z.infer<typeof rulesSchema>
+
 export const createNewGame = publicProcedure
   .input(
     z.object({
       gameName: z.string().min(MIN_GAME_NAME_LENGTH).max(MAX_GAME_NAME_LENGTH),
       playerName: z.string().min(MIN_PLAYER_NAME_LENGTH).max(MAX_PLAYER_NAME_LENGTH),
       password: z.string().optional(),
+      rules: rulesSchema.optional(),
     })
   )
   .mutation(({ input }) => {
@@ -27,27 +40,33 @@ export const createNewGame = publicProcedure
       name: input.playerName,
     })
 
+    const defaultRules = {
+      throwScoreThreshold: 45,
+      pointsForWin: 5,
+      pointsForWinWithTwo: 10,
+      numberOfThrows: 3,
+      chicagoRequiresBestHand: true,
+      chicagoCanBeCalledBeforeFifteen: true,
+      oneOpenMode: 'last' as const,
+      handPoints: {
+        pair: 1,
+        twoPair: 2,
+        threeOfAKind: 3,
+        straight: 4,
+        flush: 5,
+        fullHouse: 6,
+        fourOfAKind: 7,
+        straightFlush: 8,
+        royalStraightFlush: 52,
+      },
+    }
+
     const gameData = {
       deck: [...CARDS],
       rules: {
-        throwScoreThreshold: 45,
-        pointsForWin: 5,
-        pointsForWinWithTwo: 10,
-        numberOfThrows: 3,
-        chicagoRequiresBestHand: true,
-        chicagoCanBeCalledBeforeFifteen: true,
-        oneOpenMode: 'last',
-        handPoints: {
-          pair: 1,
-          twoPair: 2,
-          threeOfAKind: 3,
-          straight: 4,
-          flush: 5,
-          fullHouse: 6,
-          fourOfAKind: 7,
-          straightFlush: 8,
-          royalStraightFlush: 52,
-        },
+        ...defaultRules,
+        ...input.rules,
+        handPoints: defaultRules.handPoints, // handPoints is not configurable
       },
       owner,
       dealer: owner,

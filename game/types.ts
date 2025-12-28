@@ -88,6 +88,27 @@ export type GameEvent = {
 
 export type GamePhase = 'new' | 'round' | 'over'
 
+export type GameRules = {
+  throwScoreThreshold: number
+  pointsForWin: number
+  pointsForWinWithTwo: number
+  numberOfThrows: number
+  chicagoRequiresBestHand: boolean
+  chicagoCanBeCalledBeforeFifteen: boolean
+  oneOpenMode: 'all' | 'last'
+  handPoints: {
+    pair: number
+    twoPair: number
+    threeOfAKind: number
+    straight: number
+    flush: number
+    fullHouse: number
+    fourOfAKind: number
+    straightFlush: number
+    royalStraightFlush: number
+  }
+}
+
 export type Game = {
   readonly id: string
   deck: Card[]
@@ -100,26 +121,7 @@ export type Game = {
   currentPlayer: Player
   round: Round
   password?: string
-  rules: {
-    throwScoreThreshold: number
-    pointsForWin: number
-    pointsForWinWithTwo: number
-    numberOfThrows: number
-    chicagoRequiresBestHand: boolean
-    chicagoCanBeCalledBeforeFifteen: boolean
-    oneOpenMode: 'all' | 'last'
-    handPoints: {
-      pair: number
-      twoPair: number
-      threeOfAKind: number
-      straight: number
-      flush: number
-      fullHouse: number
-      fourOfAKind: number
-      straightFlush: number
-      royalStraightFlush: number
-    }
-  }
+  rules: GameRules
 }
 
 export type HandType = keyof Game['rules']['handPoints']

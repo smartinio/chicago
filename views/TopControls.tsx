@@ -1,9 +1,37 @@
-import { Box, Container, Flex, HStack, Heading, Button, Tag, ThemeTypings } from '@chakra-ui/react'
+import {
+  Box,
+  Container,
+  Flex,
+  HStack,
+  Heading,
+  Button,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverCloseButton,
+  Text,
+} from '@chakra-ui/react'
 import { useState } from 'react'
 import { clearPlayerGame, setError, useSnapshot } from '#store'
 import { dataHandler } from '#utils/data'
 import { trpc } from '#utils/trpc'
 import { useRouter } from 'next/router'
+import { GameRules } from '#shared/types'
+
+const formatRules = (rules: GameRules) => {
+  const numSwaps = rules.numberOfThrows
+  return [
+    `${numSwaps} ${numSwaps === 1 ? 'swap' : 'swaps'}`,
+    `Chicago ${rules.chicagoCanBeCalledBeforeFifteen ? 'can be called' : 'cannot be called'} before 15p`,
+    `Chicago ${rules.chicagoRequiresBestHand ? 'requires' : 'does not require'} best hand`,
+    `1 open card available at ${rules.oneOpenMode === 'last' ? 'the final swap' : 'every swap'}`,
+    `Swapping is banned at ${rules.throwScoreThreshold}p`,
+    `Winning a round gives ${rules.pointsForWin}p`,
+    `Closing with a Two gives ${rules.pointsForWinWithTwo}p`,
+  ]
+}
 
 export const TopControls = () => {
   const router = useRouter()
@@ -57,6 +85,24 @@ export const TopControls = () => {
                 {copiedLink ? 'Copied to clipboard!' : 'Invite'}
               </Button>
             ) : null}
+            <Popover placement="bottom-end">
+              <PopoverTrigger>
+                <Button size="xs" colorScheme="blue" borderRadius="full">
+                  Rules
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <PopoverCloseButton />
+                <PopoverHeader fontWeight="semibold">Game Rules</PopoverHeader>
+                <PopoverBody>
+                  {formatRules(snapshot.rules).map((rule, i) => (
+                    <Text key={i} fontSize="sm">
+                      {rule}
+                    </Text>
+                  ))}
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
             <Button size="xs" colorScheme="yellow" onClick={leaveGame} borderRadius="full">
               Leave
             </Button>
