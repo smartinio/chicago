@@ -6,12 +6,12 @@ import {
   MAX_PLAYER_NAME_LENGTH,
   MIN_GAME_NAME_LENGTH,
   MIN_PLAYER_NAME_LENGTH,
-} from 'shared/constants'
-import { setPlayerGame } from 'store'
-import { trpc } from 'utils/trpc'
-import { usePersistedState } from 'utils/usePersistedState'
-import { useTextInput } from 'utils/useTextInput'
-import { displayErrors } from 'utils/error'
+} from '#shared/constants'
+import { setPlayerGame } from '#store'
+import { trpc } from '#utils/trpc'
+import { usePersistedState } from '#utils/usePersistedState'
+import { useTextInput } from '#utils/useTextInput'
+import { displayErrors } from '#utils/error'
 
 export const CreateGame = () => {
   const router = useRouter()

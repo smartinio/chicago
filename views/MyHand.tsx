@@ -12,12 +12,12 @@ import {
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useEffect, useRef, useState } from 'react'
-import { Card, Errors } from 'shared/types'
-import { useSnapshot } from 'store'
-import { dataHandler } from 'utils/data'
-import { sortBySuitAndValue } from 'utils/sort'
-import { trpc } from 'utils/trpc'
-import { PlayingCard } from 'views/PlayingCard'
+import { Card, Errors } from '#shared/types'
+import { useSnapshot } from '#store'
+import { dataHandler } from '#utils/data'
+import { sortBySuitAndValue } from '#utils/sort'
+import { trpc } from '#utils/trpc'
+import { PlayingCard } from '#views/PlayingCard'
 
 export const MyHand = () => {
   const { snapshot } = useSnapshot()

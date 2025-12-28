@@ -1,4 +1,4 @@
-import { last } from 'utils/last'
+import { last } from '#utils/last'
 import { Card, Game, HandType, Player, Round, Suit, Trick, Value } from './types'
 
 export const getNext = <T>(list: T[], predicate: (item: T) => boolean) => {

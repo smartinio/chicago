@@ -1,5 +1,5 @@
-import { Game, Player, Round } from 'game/types'
-import { CARDS } from 'game/constants'
+import { Game, Player, Round } from '#game/types'
+import { CARDS } from '#game/constants'
 
 export const stubPlayer = (overrides?: Partial<Player>): Player => {
   return {

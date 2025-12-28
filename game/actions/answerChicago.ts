@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { publicProcedure } from 'server/trpc'
-import { getGameAsCurrentPlayer } from 'game/store'
-import { Errors, isError, Results } from 'shared/types'
-import { mutate } from 'game/mutations'
-import { getPlayerNextTo } from 'game/utils'
-import { updateClients } from 'game/emitter'
+import { publicProcedure } from '#server/trpc'
+import { getGameAsCurrentPlayer } from '#game/store'
+import { Errors, isError, Results } from '#shared/types'
+import { mutate } from '#game/mutations'
+import { getPlayerNextTo } from '#game/utils'
+import { updateClients } from '#game/emitter'
 
 export const answerChicago = publicProcedure
   .input(

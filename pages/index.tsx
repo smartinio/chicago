@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
-import { setGameId } from 'store'
-import { Start } from 'views/Start'
+import { setGameId } from '#store'
+import { Start } from '#views/Start'
 
 const Index = () => {
   const router = useRouter()

@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { mutate } from 'game/mutations'
-import { getGameAsPlayer } from 'game/store'
-import { isError, Results } from 'game/types'
-import { publicProcedure } from 'server/trpc'
-import { updateClients } from 'game/emitter'
+import { mutate } from '#game/mutations'
+import { getGameAsPlayer } from '#game/store'
+import { isError, Results } from '#game/types'
+import { publicProcedure } from '#server/trpc'
+import { updateClients } from '#game/emitter'
 
 export const leaveGame = publicProcedure
   .input(

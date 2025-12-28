@@ -1,13 +1,13 @@
 import { v4 as uuid } from 'uuid'
 import { z } from 'zod'
-import { MAX_PLAYER_COUNT } from 'game/constants'
-import { mutate } from 'game/mutations'
-import { getGameAsOutsider } from 'game/store'
-import { Errors, isError } from 'game/types'
-import { createPlayer } from 'game/utils'
-import { publicProcedure } from 'server/trpc'
-import { updateClients } from 'game/emitter'
-import { MIN_PLAYER_NAME_LENGTH, MAX_PLAYER_NAME_LENGTH } from 'shared/constants'
+import { MAX_PLAYER_COUNT } from '#game/constants'
+import { mutate } from '#game/mutations'
+import { getGameAsOutsider } from '#game/store'
+import { Errors, isError } from '#game/types'
+import { createPlayer } from '#game/utils'
+import { publicProcedure } from '#server/trpc'
+import { updateClients } from '#game/emitter'
+import { MIN_PLAYER_NAME_LENGTH, MAX_PLAYER_NAME_LENGTH } from '#shared/constants'
 
 export const joinGame = publicProcedure
   .input(

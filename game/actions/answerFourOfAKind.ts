@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { publicProcedure } from 'server/trpc'
-import { getGameAsCurrentPlayer } from 'game/store'
-import { Errors, isError, Results } from 'shared/types'
-import { mutate } from 'game/mutations'
-import { updateClients } from 'game/emitter'
+import { publicProcedure } from '#server/trpc'
+import { getGameAsCurrentPlayer } from '#game/store'
+import { Errors, isError, Results } from '#shared/types'
+import { mutate } from '#game/mutations'
+import { updateClients } from '#game/emitter'
 import * as throwingPhase from './throwCards'
-import { decideWinningPlayedCard } from 'game/utils'
+import { decideWinningPlayedCard } from '#game/utils'
 
 export const answerFourOfAKind = publicProcedure
   .input(

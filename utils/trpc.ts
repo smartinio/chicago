@@ -1,7 +1,7 @@
 import { createWSClient, httpBatchLink, wsLink } from '@trpc/client'
 import { createTRPCNext } from '@trpc/next'
 import { ssrPrepass } from '@trpc/next/ssrPrepass'
-import { SERVER_HOST, SERVER_PORT, WS_PORT } from 'shared/constants'
+import { SERVER_HOST, SERVER_PORT, WS_PORT } from '#shared/constants'
 import type { AppRouter } from '../server/routers/_app'
 
 function getEndingLink() {

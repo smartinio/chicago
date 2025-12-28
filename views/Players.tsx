@@ -14,11 +14,11 @@ import {
 import { keyframes } from '@emotion/react'
 import confetti from 'canvas-confetti'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Card, PlayerSnapshot } from 'shared/types'
-import { useSnapshot } from 'store'
-import { defaultDataHandler } from 'utils/data'
-import { trpc } from 'utils/trpc'
-import { PlayingCard } from 'views/PlayingCard'
+import { Card, PlayerSnapshot } from '#shared/types'
+import { useSnapshot } from '#store'
+import { defaultDataHandler } from '#utils/data'
+import { trpc } from '#utils/trpc'
+import { PlayingCard } from '#views/PlayingCard'
 
 const intensify = keyframes`
   0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }

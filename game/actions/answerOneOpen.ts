@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { publicProcedure } from 'server/trpc'
-import { getGameAsCurrentPlayer } from 'game/store'
-import { Errors, isError, Results } from 'shared/types'
-import { mutate } from 'game/mutations'
-import { updateClients } from 'game/emitter'
+import { publicProcedure } from '#server/trpc'
+import { getGameAsCurrentPlayer } from '#game/store'
+import { Errors, isError, Results } from '#shared/types'
+import { mutate } from '#game/mutations'
+import { updateClients } from '#game/emitter'
 import { handlePostThrow } from './throwCards'
-import { logger } from 'game/logger'
+import { logger } from '#game/logger'
 
 export const answerOneOpen = publicProcedure
   .input(

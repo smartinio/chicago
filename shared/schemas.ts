@@ -1,4 +1,4 @@
-import { CARDS_BY_ID, CARD_IDS, CARDS } from 'game/constants'
+import { CARDS_BY_ID, CARD_IDS, CARDS } from '#game/constants'
 import { z } from 'zod'
 
 export const schemas = {

@@ -1,5 +1,5 @@
 import { Card, EventAction, Game, GamePhase, Player, RoundPhase, Suit, Trick } from './types'
-import { last } from 'utils/last'
+import { last } from '#utils/last'
 
 export type EventSnapshot = {
   actorId: 'server' | string

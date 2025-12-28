@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { mutate } from 'game/mutations'
-import { getGameAsOwner, getGameAsPlayer } from 'game/store'
-import { Errors, isError, Results } from 'game/types'
-import { publicProcedure } from 'server/trpc'
-import { notifyKickedPlayer, updateClients } from 'game/emitter'
+import { mutate } from '#game/mutations'
+import { getGameAsOwner, getGameAsPlayer } from '#game/store'
+import { Errors, isError, Results } from '#game/types'
+import { publicProcedure } from '#server/trpc'
+import { notifyKickedPlayer, updateClients } from '#game/emitter'
 
 export const kickPlayer = publicProcedure
   .input(

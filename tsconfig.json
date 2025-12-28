@@ -11,12 +11,12 @@
     "module": "esnext",
     "moduleResolution": "node",
     "paths": {
-      "shared/*": ["./shared/*"],
-      "utils/*": ["./utils/*"],
-      "game/*": ["./game/*"],
-      "server/*": ["./server/*"],
-      "views/*": ["./views/*"],
-      "store": ["./store"]
+      "#shared/*": ["./shared/*"],
+      "#utils/*": ["./utils/*"],
+      "#game/*": ["./game/*"],
+      "#server/*": ["./server/*"],
+      "#views/*": ["./views/*"],
+      "#store": ["./store"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,

@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { Box, BoxProps, Flex } from '@chakra-ui/react'
-import { Card } from 'shared/types'
-import { getCardSrc } from 'utils/card'
+import { Card } from '#shared/types'
+import { getCardSrc } from '#utils/card'
 
 interface PlayingCardProps {
   card: Card

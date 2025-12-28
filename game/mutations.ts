@@ -1,8 +1,8 @@
-import { dealCards } from 'game/dealCards'
-import { Card, PlayedCard, Trick, Game, Player, Round, GameEvent, Results } from 'game/types'
-import { createTrick, decideWinningPlayedCard, getPlayerNextTo } from 'game/utils'
+import { dealCards } from '#game/dealCards'
+import { Card, PlayedCard, Trick, Game, Player, Round, GameEvent, Results } from '#game/types'
+import { createTrick, decideWinningPlayedCard, getPlayerNextTo } from '#game/utils'
 import { destroyGameAsOwner } from './store'
-import { last } from 'utils/last'
+import { last } from '#utils/last'
 
 /**
  * Methods that mutate the game state are collected here

@@ -1,8 +1,8 @@
 import { Text, Flex, Button } from '@chakra-ui/react'
-import { usePlayerGame, useSnapshot } from 'store'
-import { defaultDataHandler } from 'utils/data'
-import { trpc } from 'utils/trpc'
-import { PlayingCard } from 'views/PlayingCard'
+import { usePlayerGame, useSnapshot } from '#store'
+import { defaultDataHandler } from '#utils/data'
+import { trpc } from '#utils/trpc'
+import { PlayingCard } from '#views/PlayingCard'
 
 export const MiddleArea = () => {
   const { snapshot } = useSnapshot()

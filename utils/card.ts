@@ -1,4 +1,4 @@
-import { Card } from 'shared/types'
+import { Card } from '#shared/types'
 
 const valueMap = {
   2: 'TWO',

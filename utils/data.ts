@@ -1,5 +1,5 @@
-import { isError, Errors } from 'game/types'
-import { setError, setResult } from 'store'
+import { isError, Errors } from '#game/types'
+import { setError, setResult } from '#store'
 
 export const dataHandler =
   <T>(onData: (data: T) => void, onError: (error?: Errors) => void) =>

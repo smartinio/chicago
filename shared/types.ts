@@ -1,2 +1,2 @@
-export * from 'game/snapshot'
-export * from 'game/types'
+export * from '#game/snapshot'
+export * from '#game/types'

@@ -1,16 +1,16 @@
 import { z } from 'zod'
-import { storeGame } from 'game/store'
-import { createPlayer, createRound } from 'game/utils'
+import { storeGame } from '#game/store'
+import { createPlayer, createRound } from '#game/utils'
 import { v4 as uuid } from 'uuid'
-import { publicProcedure } from 'server/trpc'
+import { publicProcedure } from '#server/trpc'
 import {
   MAX_GAME_NAME_LENGTH,
   MAX_PLAYER_NAME_LENGTH,
   MIN_GAME_NAME_LENGTH,
   MIN_PLAYER_NAME_LENGTH,
-} from 'shared/constants'
-import { CARDS } from 'game/constants'
-import { Game } from 'game/types'
+} from '#shared/constants'
+import { CARDS } from '#game/constants'
+import { Game } from '#game/types'
 
 export const createNewGame = publicProcedure
   .input(

@@ -1,9 +1,9 @@
 import { Container, Spinner } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
-import { setGameId, usePlayerGame } from 'store'
-import { Game } from 'views/Game'
-import { Start } from 'views/Start'
+import { setGameId, usePlayerGame } from '#store'
+import { Game } from '#views/Game'
+import { Start } from '#views/Start'
 
 const GameId = () => {
   const router = useRouter()

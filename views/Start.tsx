@@ -9,8 +9,8 @@ import {
   TabPanel,
 } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
-import { CreateGame } from 'views/CreateGame'
-import { JoinGame } from 'views/JoinGame'
+import { CreateGame } from '#views/CreateGame'
+import { JoinGame } from '#views/JoinGame'
 
 export const Start = () => {
   const router = useRouter()

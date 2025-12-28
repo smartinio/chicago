@@ -1,5 +1,5 @@
 import { initTRPC } from '@trpc/server'
-import { logger } from 'game/logger'
+import { logger } from '#game/logger'
 
 // Avoid exporting the entire t-object since it's not very
 // descriptive and can be confusing to newcomers used to t

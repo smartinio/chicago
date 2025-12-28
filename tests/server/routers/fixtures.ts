@@ -1,4 +1,4 @@
-import { CARDS_BY_ID } from 'game/constants'
+import { CARDS_BY_ID } from '#game/constants'
 
 export const mockPlayer1Cards = {
   'clubs:9': CARDS_BY_ID['clubs:9'],

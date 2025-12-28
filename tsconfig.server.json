@@ -3,16 +3,14 @@
   "compilerOptions": {
     "module": "commonjs",
     "outDir": "dist",
-    "target": "es2017",
     "isolatedModules": false,
     "noEmit": false,
     "paths": {
-      "game/*": ["./game/*"],
-      "server/*": ["./server/*"],
-      "shared/*": ["./shared/*"],
-      "utils/*": ["./utils/*"]
-    },
-    "plugins": [{ "transform": "typescript-transform-paths" }]
+      "#game/*": ["./game/*"],
+      "#server/*": ["./server/*"],
+      "#shared/*": ["./shared/*"],
+      "#utils/*": ["./utils/*"]
+    }
   },
   "include": ["server/**/*.ts"]
 }

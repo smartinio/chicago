@@ -1,8 +1,8 @@
 import { Box, Container, Flex, HStack, Heading, Button, Tag, ThemeTypings } from '@chakra-ui/react'
 import { useState } from 'react'
-import { clearPlayerGame, setError, useSnapshot } from 'store'
-import { dataHandler } from 'utils/data'
-import { trpc } from 'utils/trpc'
+import { clearPlayerGame, setError, useSnapshot } from '#store'
+import { dataHandler } from '#utils/data'
+import { trpc } from '#utils/trpc'
 import { useRouter } from 'next/router'
 
 export const TopControls = () => {

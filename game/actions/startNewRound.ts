@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { MIN_PLAYER_COUNT } from 'game/constants'
-import { mutate } from 'game/mutations'
-import { getGameAsDealer } from 'game/store'
-import { Errors, isError, Results, RoundPhase } from 'game/types'
-import { createRound, getPlayerNextTo } from 'game/utils'
-import { publicProcedure } from 'server/trpc'
-import { updateClients } from 'game/emitter'
+import { MIN_PLAYER_COUNT } from '#game/constants'
+import { mutate } from '#game/mutations'
+import { getGameAsDealer } from '#game/store'
+import { Errors, isError, Results, RoundPhase } from '#game/types'
+import { createRound, getPlayerNextTo } from '#game/utils'
+import { publicProcedure } from '#server/trpc'
+import { updateClients } from '#game/emitter'
 
 export const startNewRound = publicProcedure
   .input(

@@ -1,12 +1,12 @@
-import { publicProcedure } from 'server/trpc'
+import { publicProcedure } from '#server/trpc'
 import { z } from 'zod'
-import { getGameAsCurrentPlayer } from 'game/store'
-import { Errors, Game, isError, Player, Results } from 'game/types'
-import { mutate } from 'game/mutations'
-import { schemas } from 'shared/schemas'
-import { updateClients } from 'game/emitter'
-import { getPlayerNextTo, getPlayersWithBestHand } from 'game/utils'
-import { logger } from 'game/logger'
+import { getGameAsCurrentPlayer } from '#game/store'
+import { Errors, Game, isError, Player, Results } from '#game/types'
+import { mutate } from '#game/mutations'
+import { schemas } from '#shared/schemas'
+import { updateClients } from '#game/emitter'
+import { getPlayerNextTo, getPlayersWithBestHand } from '#game/utils'
+import { logger } from '#game/logger'
 
 export const throwCards = publicProcedure
   .input(

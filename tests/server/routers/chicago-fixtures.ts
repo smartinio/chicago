@@ -3,8 +3,8 @@
  * Each player receives exactly 5 cards.
  */
 
-import { CARDS_BY_ID } from 'game/constants'
-import { Card, Game } from 'game/types'
+import { CARDS_BY_ID } from '#game/constants'
+import { Card, Game } from '#game/types'
 
 // Helper to get card by ID with type safety
 export const card = (id: keyof typeof CARDS_BY_ID) => CARDS_BY_ID[id]

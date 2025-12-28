@@ -1,5 +1,5 @@
 import { EventEmitter, on } from 'events'
-import { createSnapshot, Snapshot } from 'game/snapshot'
+import { createSnapshot, Snapshot } from '#game/snapshot'
 import { Game, Player } from './types'
 
 const ee = new EventEmitter()

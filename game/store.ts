@@ -1,4 +1,4 @@
-import { last } from 'utils/last'
+import { last } from '#utils/last'
 import { v4 as uuid } from 'uuid'
 import { notifyKickedPlayer } from './emitter'
 import { Game, Errors } from './types'

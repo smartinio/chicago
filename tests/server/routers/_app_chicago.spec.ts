@@ -4,12 +4,12 @@
  * This test suite implements the acceptance criteria defined in CHICAGO_ACCEPTANCE_CRITERIA.md
  */
 
-import { AppRouter, appRouter } from 'server/routers/_app'
+import { AppRouter, appRouter } from '#server/routers/_app'
 import { inferProcedureInput } from '@trpc/server'
-import { games } from 'game/store'
-import { Errors, Game, isError, Results } from 'game/types'
-import { dealCards } from 'game/dealCards'
-import { createCallerFactory } from 'server/trpc'
+import { games } from '#game/store'
+import { Errors, Game, isError, Results } from '#game/types'
+import { dealCards } from '#game/dealCards'
+import { createCallerFactory } from '#server/trpc'
 import { card, createMockDealCards, defaultHands, HandFixture } from './chicago-fixtures'
 
 // Mock dealCards to control card distribution

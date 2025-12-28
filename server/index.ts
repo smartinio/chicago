@@ -2,9 +2,9 @@
 import { createServer } from 'http'
 import { parse } from 'url'
 import next from 'next'
-import { SERVER_HOST, SERVER_PORT } from 'shared/constants'
+import { SERVER_HOST, SERVER_PORT } from '#shared/constants'
 import { createWSS } from './ws'
-import { logger } from 'game/logger'
+import { logger } from '#game/logger'
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = SERVER_HOST

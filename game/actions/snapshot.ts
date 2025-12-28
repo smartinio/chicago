@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { getGameAsPlayer } from 'game/store'
-import { Errors, isError } from 'game/types'
-import { publicProcedure } from 'server/trpc'
-import { createSnapshot } from 'game/snapshot'
-import { emitter, getPlayerChannel, SocketEvent } from 'game/emitter'
+import { getGameAsPlayer } from '#game/store'
+import { Errors, isError } from '#game/types'
+import { publicProcedure } from '#server/trpc'
+import { createSnapshot } from '#game/snapshot'
+import { emitter, getPlayerChannel, SocketEvent } from '#game/emitter'
 
 export const snapshotQuery = publicProcedure
   .input(

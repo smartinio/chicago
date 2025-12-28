@@ -1,5 +1,5 @@
-import { Errors, Results } from 'game/types'
-import { Snapshot } from 'shared/types'
+import { Errors, Results } from '#game/types'
+import { Snapshot } from '#shared/types'
 import { persist } from 'zustand/middleware'
 import { create } from 'zustand'
 

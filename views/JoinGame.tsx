@@ -1,12 +1,12 @@
 import { VStack, Input, Button, Text, FormControl, FormErrorMessage } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
-import { Errors, isError } from 'shared/types'
-import { trpc } from 'utils/trpc'
-import { usePersistedState } from 'utils/usePersistedState'
-import { setError, setPlayerGame, usePlayerGame, useResults } from 'store'
-import { displayErrors } from 'utils/error'
+import { Errors, isError } from '#shared/types'
+import { trpc } from '#utils/trpc'
+import { usePersistedState } from '#utils/usePersistedState'
+import { setError, setPlayerGame, usePlayerGame, useResults } from '#store'
+import { displayErrors } from '#utils/error'
 import { useState } from 'react'
-import { MAX_PLAYER_NAME_LENGTH, MIN_PLAYER_NAME_LENGTH } from 'shared/constants'
+import { MAX_PLAYER_NAME_LENGTH, MIN_PLAYER_NAME_LENGTH } from '#shared/constants'
 
 export const JoinGame = () => {
   const router = useRouter()

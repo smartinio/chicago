@@ -3,7 +3,7 @@ import { Server } from 'http'
 import ws from 'ws'
 import { appRouter } from './routers/_app'
 import { createContext } from './trpc'
-import { logger } from 'game/logger'
+import { logger } from '#game/logger'
 
 export const createWSS = (
   server?: Server,

@@ -1,6 +1,6 @@
-import { getGameAsPlayer } from 'game/store'
-import { isError } from 'game/types'
-import { publicProcedure } from 'server/trpc'
+import { getGameAsPlayer } from '#game/store'
+import { isError } from '#game/types'
+import { publicProcedure } from '#server/trpc'
 import { z } from 'zod'
 
 export const keepAlive = publicProcedure
