@@ -107,6 +107,7 @@ export const handlePostThrow = (params: { game: Game; player: Player; cycle: boo
     }
 
     mutate.addThrowCycle({ game })
+
     const bestHandPlayers = getPlayersWithBestHand(game)
 
     for (const { player, points, handType } of bestHandPlayers) {
@@ -122,6 +123,16 @@ export const handlePostThrow = (params: { game: Game; player: Player; cycle: boo
         event: { actor: player, action: 'received_points', points, handType },
       })
     }
+
+    mutate.addEvent({
+      game,
+      event: {
+        actor: 'server',
+        action: 'throw_cycle_started',
+        throwNumber: game.round.throwCycles.length,
+        maxThrows: game.rules.numberOfThrows,
+      },
+    })
 
     return mutate.getNextThrowEligiblePlayerAfter({ game, afterPlayer: game.dealer })
   }

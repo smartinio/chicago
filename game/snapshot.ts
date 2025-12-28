@@ -15,6 +15,8 @@ export type EventSnapshot = {
     player: PlayerSnapshot
     card: Card
     cards: Card[]
+    throwNumber: number
+    maxThrows: number
   }>
 }
 
@@ -102,6 +104,8 @@ export const createSnapshot = (params: { player: Player; game: Game }): Snapshot
           player: event.player ? createPlayerSnapshot(event.player, game) : undefined,
           card: event.card,
           cards: event.cards,
+          throwNumber: event.throwNumber,
+          maxThrows: event.maxThrows,
         },
       })
     ),

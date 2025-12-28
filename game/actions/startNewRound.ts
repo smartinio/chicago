@@ -71,6 +71,15 @@ export const startNewRound = publicProcedure
         game,
         event: { actor: dealer, action: isRestart ? 'restarted_round' : 'started_round' },
       })
+      mutate.addEvent({
+        game,
+        event: {
+          actor: 'server',
+          action: 'throw_cycle_started',
+          throwNumber: game.round.throwCycles.length,
+          maxThrows: game.rules.numberOfThrows,
+        },
+      })
 
       return Results.STARTED_ROUND
     })()

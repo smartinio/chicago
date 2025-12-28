@@ -1,4 +1,4 @@
-import { Box, Button, Flex, HStack, SlideFade, VStack } from '@chakra-ui/react'
+import { Box, Button, Flex, HStack, SlideFade, Tag, VStack } from '@chakra-ui/react'
 import {
   DndContext,
   DragEndEvent,
@@ -223,7 +223,7 @@ export const MyHand = () => {
 
   return (
     <DndContext onDragEnd={handleDragEnd} onDragOver={handleDragOver} sensors={sensors}>
-      {gamePhase === 'round' && roundPhase === 'tricking' && <Droppable id="dropzone" />}
+      <Droppable id="dropzone" />
       <Box minHeight={minHeight}>
         <Box
           position="fixed"
@@ -239,126 +239,127 @@ export const MyHand = () => {
           <SlideFade in={shouldFadeIn} offsetY="120px">
             <Box paddingX="4">
               <Box paddingBottom="4" textAlign="center" opacity={gamePhase === 'round' ? 1 : 0}>
-                {(() => {
-                  switch (roundPhase) {
-                    case 'throwing':
-                      return (
-                        <HStack spacing="2" justifyContent="center">
-                          <Button
-                            style={getThrowButtonStyle()}
-                            onClick={handleThrowPress}
-                            variant="solid"
-                            colorScheme={selectedCards.length > 0 ? 'green' : 'blue'}
-                            borderRadius="3xl"
-                            isDisabled={!canPlay}
-                          >
-                            {selectedCards.length > 0 ? `Throw ${selectedCards.length}` : 'Pass'}
-                          </Button>
-                          {oneOpenAvailable && selectedCards.length === 1 && (
+                {isMyTurn &&
+                  (() => {
+                    switch (roundPhase) {
+                      case 'throwing':
+                        return (
+                          <HStack spacing="2" justifyContent="center">
                             <Button
                               style={getThrowButtonStyle()}
-                              onClick={handleOneOpenPress}
+                              onClick={handleThrowPress}
                               variant="solid"
-                              colorScheme={'blue'}
+                              colorScheme={selectedCards.length > 0 ? 'green' : 'blue'}
                               borderRadius="3xl"
                               isDisabled={!canPlay}
                             >
-                              1 Open
+                              {selectedCards.length > 0 ? `Swap ${selectedCards.length}` : 'Pass'}
                             </Button>
-                          )}
-                        </HStack>
-                      )
-                    case 'tricking':
-                      return (
-                        <Button
-                          style={getPlayButtonStyle()}
-                          onClick={handlePlayPress}
-                          variant="solid"
-                          colorScheme="green"
-                          borderRadius="3xl"
-                          isDisabled={!canPlay}
-                        >
-                          Play
-                        </Button>
-                      )
-                    case 'asking_chicago':
-                      return (
-                        isMyTurn && (
-                          <VStack spacing="2" justifyContent="center">
-                            <strong>Chicago?</strong>
+                            {oneOpenAvailable && selectedCards.length === 1 && (
+                              <Button
+                                style={getThrowButtonStyle()}
+                                onClick={handleOneOpenPress}
+                                variant="solid"
+                                colorScheme={'blue'}
+                                borderRadius="3xl"
+                                isDisabled={!canPlay}
+                              >
+                                1 Open
+                              </Button>
+                            )}
+                          </HStack>
+                        )
+                      case 'tricking':
+                        return (
+                          <Button
+                            style={getPlayButtonStyle()}
+                            onClick={handlePlayPress}
+                            variant="solid"
+                            colorScheme="green"
+                            borderRadius="3xl"
+                            isDisabled={!canPlay}
+                          >
+                            Play
+                          </Button>
+                        )
+                      case 'asking_chicago':
+                        return (
+                          isMyTurn && (
+                            <VStack spacing="2" justifyContent="center">
+                              <strong>Chicago?</strong>
+                              <HStack spacing="2" justifyContent="center">
+                                <Button
+                                  onClick={handleAcceptChicagoPress}
+                                  variant="solid"
+                                  colorScheme="green"
+                                  borderRadius="3xl"
+                                  boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
+                                >
+                                  Yes
+                                </Button>
+                                <Button
+                                  onClick={handleRejectChicagoPress}
+                                  variant="solid"
+                                  colorScheme="red"
+                                  borderRadius="3xl"
+                                  boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
+                                >
+                                  No
+                                </Button>
+                              </HStack>
+                            </VStack>
+                          )
+                        )
+                      case 'asking_four_of_a_kind':
+                        return (
+                          isMyTurn && (
                             <HStack spacing="2" justifyContent="center">
                               <Button
-                                onClick={handleAcceptChicagoPress}
+                                onClick={handleFourOfAKindPointsPress}
                                 variant="solid"
                                 colorScheme="green"
                                 borderRadius="3xl"
-                                boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
                               >
-                                Yes
+                                {rules.handPoints.fourOfAKind} points
                               </Button>
                               <Button
-                                onClick={handleRejectChicagoPress}
+                                onClick={handleFourOfAKindZeroOthersPress}
                                 variant="solid"
                                 colorScheme="red"
                                 borderRadius="3xl"
-                                boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
                               >
-                                No
+                                Zero others
                               </Button>
                             </HStack>
-                          </VStack>
+                          )
                         )
-                      )
-                    case 'asking_four_of_a_kind':
-                      return (
-                        isMyTurn && (
-                          <HStack spacing="2" justifyContent="center">
-                            <Button
-                              onClick={handleFourOfAKindPointsPress}
-                              variant="solid"
-                              colorScheme="green"
-                              borderRadius="3xl"
-                            >
-                              {rules.handPoints.fourOfAKind} points
-                            </Button>
-                            <Button
-                              onClick={handleFourOfAKindZeroOthersPress}
-                              variant="solid"
-                              colorScheme="red"
-                              borderRadius="3xl"
-                            >
-                              Zero others
-                            </Button>
-                          </HStack>
+                      case 'asking_one_open':
+                        return (
+                          isMyTurn && (
+                            <HStack spacing="2" justifyContent="center">
+                              <Button
+                                onClick={handleAcceptOneOpenPress}
+                                variant="solid"
+                                colorScheme="green"
+                                borderRadius="3xl"
+                              >
+                                Accept
+                              </Button>
+                              <Button
+                                onClick={handleRejectOneOpenPress}
+                                variant="solid"
+                                colorScheme="red"
+                                borderRadius="3xl"
+                              >
+                                Reject
+                              </Button>
+                            </HStack>
+                          )
                         )
-                      )
-                    case 'asking_one_open':
-                      return (
-                        isMyTurn && (
-                          <HStack spacing="2" justifyContent="center">
-                            <Button
-                              onClick={handleAcceptOneOpenPress}
-                              variant="solid"
-                              colorScheme="green"
-                              borderRadius="3xl"
-                            >
-                              Accept
-                            </Button>
-                            <Button
-                              onClick={handleRejectOneOpenPress}
-                              variant="solid"
-                              colorScheme="red"
-                              borderRadius="3xl"
-                            >
-                              Reject
-                            </Button>
-                          </HStack>
-                        )
-                      )
-                    default:
-                      return null
-                  }
-                })()}
+                      default:
+                        return null
+                    }
+                  })()}
               </Box>
               <Flex justifyContent="center" opacity={canPlay ? 1 : 0.15} marginBottom="-110px">
                 {sortedCards.map((card, idx) => (
@@ -388,6 +389,10 @@ export const MyHand = () => {
 
 const handleError = (error?: Errors) => {
   switch (error) {
+    case Errors.MUST_FOLLOW_SUIT: {
+      alert('You must follow suit')
+      break
+    }
     case Errors.CARD_NOT_IN_HAND:
     case Errors.INVALID_PHASE:
     case Errors.FORBIDDEN: {
@@ -436,6 +441,7 @@ const Droppable = ({ id }: { id: string }) => {
       bottom={200}
       left={0}
       right={0}
+      pointerEvents="none"
     />
   )
 }

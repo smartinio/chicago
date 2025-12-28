@@ -185,8 +185,8 @@ const Player = (props: {
               ref={avatarRef}
               borderColor={isChicagoCaller ? 'orange.500' : 'gray.500'}
               borderWidth={'medium'}
-              size="lg"
-              src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${player.id}&flip=${!isLeft}`}
+              size="md"
+              src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${player.name}&flip=${!isLeft}`}
               opacity={isChicagoCaller ? 0.4 : 1}
             />
           </Box>
@@ -237,9 +237,9 @@ const Player = (props: {
         </Box>
 
         <Flex alignItems="center" direction="column" gap={1}>
-          <Heading size="sm" maxWidth={100} textAlign="center">
+          <Text width="72px" textAlign="center" fontSize="sm" fontWeight="bold">
             {player.name}
-          </Heading>
+          </Text>
         </Flex>
 
         <VStack spacing="2">

@@ -47,6 +47,7 @@ export type Round = {
 }
 
 export type EventAction =
+  | 'tricking_phase_started'
   | 'joined_team'
   | 'left_game'
   | 'kicked_player'
@@ -54,6 +55,7 @@ export type EventAction =
   | 'made_it_rain'
   | 'had_hand_type'
   | 'killed_round'
+  | 'throw_cycle_started'
   | 'restarted_round'
   | 'received_points'
   | 'started_round'
@@ -80,6 +82,8 @@ export type GameEvent = {
   points?: number
   accepted?: boolean
   answer?: 'points' | 'reset_others'
+  throwNumber?: number
+  maxThrows?: number
 }
 
 export type GamePhase = 'new' | 'round' | 'over'
@@ -131,6 +135,7 @@ export enum Errors {
   TOO_FEW_PLAYERS = 'TOO_FEW_PLAYERS',
   TOO_MANY_PLAYERS = 'TOO_MANY_PLAYERS',
   UNEXPECTED = 'UNEXPECTED',
+  MUST_FOLLOW_SUIT = 'MUST_FOLLOW_SUIT',
 }
 
 export enum Results {

@@ -1,28 +1,9 @@
-import { Text, Flex, Button } from '@chakra-ui/react'
+import { Flex, Button } from '@chakra-ui/react'
 import { usePlayerGame, useSnapshot } from '#store'
 import { defaultDataHandler } from '#utils/data'
 import { trpc } from '#utils/trpc'
 import { PlayingCard } from '#views/PlayingCard'
-import { Card, Suit, Value } from '#game/types'
 import { EventLog } from '#views/EventLog'
-
-const suits: Record<Suit, string> = {
-  clubs: '♣️',
-  spades: '♠️',
-  hearts: '♥️',
-  diamonds: '♦',
-} as const
-
-const values: Partial<Record<Value, string>> = {
-  11: 'J',
-  12: 'Q',
-  13: 'K',
-  14: 'A',
-} as const
-
-const formatCard = (card: Card) => {
-  return `${suits[card.suit]}${values[card.value] || card.value}`
-}
 
 export const MiddleArea = () => {
   const { snapshot } = useSnapshot()

@@ -61,13 +61,22 @@ const formatEvent = (
     case 'restarted_round':
       return { message: '🔄 Round restarted' }
     case 'started_round':
-      return { message: '✨ New round begins ✨' }
+      return { message: '✨ New round ✨' }
     case 'threw_cards': {
       const count = data.count ?? 0
       const cards = count === 1 ? 'card' : 'cards'
       const icon = count === 0 ? '🤔' : '🔁'
-      return { actor, message: `traded ${count} ${cards} ${icon}` }
+      return { actor, message: `swapped ${count} ${cards} ${icon}` }
     }
+    case 'tricking_phase_started':
+      return { message: '🎲 Time to play!' }
+    case 'throw_cycle_started':
+      const swap: Record<number, string> = {
+        1: 'First',
+        2: 'Second',
+        3: 'Third',
+      }
+      return { message: `— ${swap[data.throwNumber!]} swap —` }
     case 'won_trick':
       return { actor, message: 'took the trick! 👀' }
     case 'won_round': {
@@ -137,12 +146,40 @@ const Event = ({ event, players }: { event: EventSnapshot; players: PlayerSnapsh
   )
 }
 
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
+
 const EventList = ({ events, players }: { events: EventSnapshot[]; players: PlayerSnapshot[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const hasMountedRef = useRef(false)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = scrollRef.current
+    if (!container) return
+
+    const target = container.scrollHeight - container.clientHeight
+
+    if (!hasMountedRef.current) {
+      container.scrollTop = target
+      hasMountedRef.current = true
+      return
+    }
+
+    const start = container.scrollTop
+    const distance = target - start
+    if (distance <= 0) return
+
+    const duration = 500
+    const startTime = performance.now()
+    let rafId: number
+
+    const animate = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1)
+      container.scrollTop = start + distance * easeOutCubic(progress)
+      if (progress < 1) rafId = requestAnimationFrame(animate)
+    }
+
+    rafId = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(rafId)
   }, [events])
 
   const hasOverflow = events.length > 3
@@ -151,13 +188,13 @@ const EventList = ({ events, players }: { events: EventSnapshot[]; players: Play
     <Box
       ref={scrollRef}
       overflowY="auto"
-      height="60px"
+      height="80px"
       position="relative"
       zIndex={0}
       css={{
-        maskImage: hasOverflow ? 'linear-gradient(to bottom, transparent 0%, black 30%)' : 'none',
+        maskImage: hasOverflow ? 'linear-gradient(to bottom, transparent 0%, black 40%)' : 'none',
         WebkitMaskImage: hasOverflow
-          ? 'linear-gradient(to bottom, transparent 0%, black 30%)'
+          ? 'linear-gradient(to bottom, transparent 0%, black 40%)'
           : 'none',
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
@@ -170,7 +207,6 @@ const EventList = ({ events, players }: { events: EventSnapshot[]; players: Play
         {events.map((event) => (
           <Event key={event.id} event={event} players={players} />
         ))}
-        <Box ref={bottomRef} />
       </VStack>
     </Box>
   )

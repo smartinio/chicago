@@ -42,6 +42,7 @@ export const answerChicago = publicProcedure
           event: { actor: player, action: 'answered_chicago', accepted: true },
         })
         mutate.setRoundPhase({ game, phase: 'tricking' })
+        mutate.addEvent({ game, event: { actor: 'server', action: 'tricking_phase_started' } })
         return Results.STARTED_ROUND
       }
 
@@ -66,6 +67,7 @@ export const answerChicago = publicProcedure
       }
 
       mutate.setRoundPhase({ game, phase: 'tricking' })
+      mutate.addEvent({ game, event: { actor: 'server', action: 'tricking_phase_started' } })
       mutate.setCurrentPlayer({ game, player: getPlayerNextTo(game.dealer, game) })
 
       return Results.ANSWERED_CHICAGO

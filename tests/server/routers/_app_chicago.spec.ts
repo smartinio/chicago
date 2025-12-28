@@ -876,7 +876,7 @@ describe('Chicago: Chicago Declaration', () => {
       // Actually P2 has a royal straight flush, so they'd have the best hand.
       // Let me create a scenario where P2 wins tricks but doesn't have best hand.
       // P2 needs to win all tricks but have a worse poker hand than someone else.
-      
+
       // New scenario: P2 has all the high cards spread across suits (no poker hand)
       // P3 has three of a kind
       const chicagoNoBestHandFixed: HandFixture = {
@@ -914,7 +914,7 @@ describe('Chicago: Chicago Declaration', () => {
       const { game } = await setupGame(caller, 4)
       // Ensure the rule is enabled
       game.rules.chicagoRequiresBestHand = true
-      
+
       await startRound(caller, game)
       await skipAllThrows(caller, game)
 
@@ -1183,7 +1183,7 @@ describe('Chicago: Trick-Taking', () => {
         card: { id: heartsCard.id },
       })
 
-      expect(result).toBe(Errors.FORBIDDEN)
+      expect(result).toBe(Errors.MUST_FOLLOW_SUIT)
     })
 
     test('Can play any card when unable to follow suit', async () => {
@@ -1527,6 +1527,82 @@ describe('Chicago: Four of a Kind', () => {
     expect(game.players[1].score).toBe(0)
     expect(game.players[2].score).toBe(0)
     expect(game.players[3].score).toBe(0)
+  })
+
+  test('After answering four of a kind, phase returns to throwing and next player can throw', async () => {
+    // P1 has four Kings
+    const fourKingsHands: HandFixture = {
+      player1: [
+        card('clubs:13'),
+        card('hearts:13'),
+        card('spades:13'),
+        card('diamonds:13'),
+        card('clubs:2'),
+      ],
+      player2: [
+        card('clubs:7'),
+        card('hearts:7'),
+        card('spades:8'),
+        card('diamonds:8'),
+        card('clubs:4'),
+      ],
+      player3: [
+        card('clubs:10'),
+        card('hearts:10'),
+        card('spades:10'),
+        card('diamonds:3'),
+        card('clubs:6'),
+      ],
+      player4: [
+        card('spades:14'),
+        card('hearts:5'),
+        card('diamonds:7'),
+        card('clubs:11'),
+        card('spades:4'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(fourKingsHands))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+
+    // Complete first throw cycle - should trigger four of a kind
+    for (let i = 0; i < game.players.length; i++) {
+      if (game.round.phase === 'asking_four_of_a_kind') break
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: game.currentPlayer.secret,
+        cards: [],
+        oneOpen: false,
+      })
+    }
+
+    expect(game.round.phase).toBe('asking_four_of_a_kind')
+    const player1 = game.players[0]
+    expect(game.currentPlayer.id).toBe(player1.id)
+
+    // Answer four of a kind
+    await caller.answerFourOfAKind({
+      gameId: game.id,
+      playerSecret: player1.secret,
+      answer: 'points',
+    })
+
+    // Phase should return to throwing, not stay as asking_four_of_a_kind
+    expect(game.round.phase).toBe('throwing')
+
+    // Next player should be able to throw
+    const nextPlayer = game.currentPlayer
+    expect(nextPlayer.id).not.toBe(player1.id)
+
+    const result = await caller.throwCards({
+      gameId: game.id,
+      playerSecret: nextPlayer.secret,
+      cards: [],
+      oneOpen: false,
+    })
+
+    expect(result).toBe(Results.THREW_CARDS)
   })
 })
 
@@ -1965,7 +2041,7 @@ describe('Chicago: Make It Rain', () => {
         card('clubs:12'), // Queen - highest remaining club after Ace is played
         card('clubs:11'), // Jack
         card('clubs:10'), // 10
-        card('clubs:9'),  // 9 - all highest remaining clubs
+        card('clubs:9'), // 9 - all highest remaining clubs
       ],
       player4: [
         card('spades:2'), // No clubs - will be void

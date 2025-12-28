@@ -57,7 +57,7 @@ export const playCard = publicProcedure
 
       if (canFollowSuit && !followsSuit) {
         logger.error('Player which can follow suit must do so')
-        return Errors.FORBIDDEN
+        return Errors.MUST_FOLLOW_SUIT
       }
     }
 
@@ -204,6 +204,10 @@ const otherPlayersCanWinRound = (game: Game, player: Player, card: Card): boolea
       ...currentTrick.playedCards.map((pc) => (pc.card.suit === leadSuit ? pc.card.value : 0))
     )
     if (card.suit !== leadSuit || card.value <= bestPlayed) return true
+
+    // If player is last to play in the last trick, just win normally (no make it rain)
+    const isLastToPlay = currentTrick.playedCards.length === game.players.length - 1
+    if (isLastToPlay) return true
 
     const playedIds = new Set(currentTrick.playedCards.map((pc) => pc.player.id))
     const canBeat = game.players.some(
