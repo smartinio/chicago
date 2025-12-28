@@ -12,6 +12,12 @@ const hand = (...ids: (keyof typeof CARDS_BY_ID)[]): Set<Card> => {
   return new Set(ids.map((id) => CARDS_BY_ID[id]))
 }
 
+// Helper to set cards on a player (mutates the existing Set)
+const setCards = (player: { cards: Set<Card> }, ...ids: (keyof typeof CARDS_BY_ID)[]) => {
+  player.cards.clear()
+  ids.forEach((id) => player.cards.add(CARDS_BY_ID[id]))
+}
+
 describe('getPointsForHand', () => {
   const game = stubGame()
 
@@ -452,13 +458,13 @@ describe('getPlayersWithBestHand', () => {
     const [p1, p2, p3, p4] = game.players
 
     // P1: pair
-    p1.cards = hand('clubs:2', 'hearts:2', 'spades:5', 'diamonds:8', 'clubs:11')
+    setCards(p1, 'clubs:2', 'hearts:2', 'spades:5', 'diamonds:8', 'clubs:11')
     // P2: three of a kind
-    p2.cards = hand('clubs:6', 'hearts:6', 'spades:6', 'diamonds:10', 'clubs:13')
+    setCards(p2, 'clubs:6', 'hearts:6', 'spades:6', 'diamonds:10', 'clubs:13')
     // P3: high card
-    p3.cards = hand('clubs:3', 'hearts:5', 'spades:8', 'diamonds:10', 'clubs:13')
+    setCards(p3, 'clubs:3', 'hearts:5', 'spades:8', 'diamonds:10', 'clubs:13')
     // P4: two pair
-    p4.cards = hand('clubs:4', 'hearts:4', 'spades:9', 'diamonds:9', 'clubs:12')
+    setCards(p4, 'clubs:4', 'hearts:4', 'spades:9', 'diamonds:9', 'clubs:12')
 
     const result = getPlayersWithBestHand(game)
     expect(result).toHaveLength(1)
@@ -472,13 +478,13 @@ describe('getPlayersWithBestHand', () => {
     const [p1, p2, p3, p4] = game.players
 
     // P1: pair of 9s with Ace kicker
-    p1.cards = hand('clubs:9', 'hearts:9', 'spades:14', 'diamonds:5', 'clubs:2')
+    setCards(p1, 'clubs:9', 'hearts:9', 'spades:14', 'diamonds:5', 'clubs:2')
     // P2: pair of 9s with King kicker
-    p2.cards = hand('spades:9', 'diamonds:9', 'clubs:13', 'hearts:5', 'diamonds:2')
+    setCards(p2, 'spades:9', 'diamonds:9', 'clubs:13', 'hearts:5', 'diamonds:2')
     // P3: high card only
-    p3.cards = hand('clubs:3', 'hearts:6', 'spades:8', 'diamonds:10', 'clubs:12')
+    setCards(p3, 'clubs:3', 'hearts:6', 'spades:8', 'diamonds:10', 'clubs:12')
     // P4: high card only
-    p4.cards = hand('clubs:4', 'hearts:7', 'spades:10', 'diamonds:12', 'clubs:14')
+    setCards(p4, 'clubs:4', 'hearts:7', 'spades:10', 'diamonds:12', 'clubs:14')
 
     const result = getPlayersWithBestHand(game)
     // P1 should win the tiebreak with the Ace kicker
@@ -490,7 +496,7 @@ describe('getPlayersWithBestHand', () => {
 describe('tieBreak', () => {
   it('returns single candidate when no tie', () => {
     const player = stubPlayer({ id: 'p1' })
-    player.cards = hand('clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9')
+    setCards(player, 'clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9')
 
     const candidates = [{ player, handType: 'pair' as const, points: 1 }]
     const result = tieBreak(candidates)
@@ -503,9 +509,9 @@ describe('tieBreak', () => {
     const p2 = stubPlayer({ id: 'p2' })
 
     // P1 has Ace high
-    p1.cards = hand('clubs:14', 'hearts:5', 'spades:6', 'diamonds:7', 'clubs:8')
+    setCards(p1, 'clubs:14', 'hearts:5', 'spades:6', 'diamonds:7', 'clubs:8')
     // P2 has King high
-    p2.cards = hand('clubs:13', 'hearts:5', 'spades:6', 'diamonds:7', 'clubs:8')
+    setCards(p2, 'clubs:13', 'hearts:5', 'spades:6', 'diamonds:7', 'clubs:8')
 
     const candidates = [
       { player: p1, handType: 'pair' as const, points: 1 },
@@ -522,9 +528,9 @@ describe('tieBreak', () => {
     const p2 = stubPlayer({ id: 'p2' })
 
     // Both have Ace, but P1 has King as second
-    p1.cards = hand('clubs:14', 'hearts:13', 'spades:6', 'diamonds:7', 'clubs:8')
+    setCards(p1, 'clubs:14', 'hearts:13', 'spades:6', 'diamonds:7', 'clubs:8')
     // P2 has Queen as second
-    p2.cards = hand('spades:14', 'hearts:12', 'diamonds:6', 'clubs:7', 'hearts:8')
+    setCards(p2, 'spades:14', 'hearts:12', 'diamonds:6', 'clubs:7', 'hearts:8')
 
     const candidates = [
       { player: p1, handType: 'pair' as const, points: 1 },
@@ -541,8 +547,8 @@ describe('tieBreak', () => {
     const p2 = stubPlayer({ id: 'p2' })
 
     // Identical values (different suits)
-    p1.cards = hand('clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:10')
-    p2.cards = hand('spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:10')
+    setCards(p1, 'clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:10')
+    setCards(p2, 'spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:10')
 
     const candidates = [
       { player: p1, handType: 'pair' as const, points: 1 },
