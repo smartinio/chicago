@@ -52,7 +52,12 @@ export const answerOneOpen = publicProcedure
 
       mutate.addEvent({
         game,
-        event: { actor: player, action: 'answered_one_open', accepted: input.acceptOpen },
+        event: {
+          actor: player,
+          action: 'answered_one_open',
+          accepted: input.acceptOpen,
+          card: openCard,
+        },
       })
 
       const cycle = mutate.updateThrowCycle({ game, player })

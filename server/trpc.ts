@@ -6,12 +6,18 @@ import { logger } from '#game/logger'
 // meaning translation in i18n libraries.
 const t = initTRPC.create()
 
+const shouldSkip = ({ path, type }: { path: string; type: string }) => {
+  return ['keepAlive', 'snapshotSubscription', 'snapshotQuery'].includes(path)
+}
+
 const loggerMiddleware = t.middleware(async ({ path, type, next, input }) => {
   const start = Date.now()
   const result = await next()
   const duration = Date.now() - start
 
-  if (result.ok) {
+  if (shouldSkip({ path, type })) {
+    // noop
+  } else if (result.ok) {
     logger.log(`✅ ${type} ${path} (${duration}ms)`, { input, output: result.data })
   } else {
     logger.log(`❌ ${type} ${path} (${duration}ms)`, { input, error: result.error })

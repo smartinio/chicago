@@ -41,8 +41,6 @@ export const MyHand = () => {
   useEffect(() => {
     switch (snapshot?.roundPhase) {
       case 'asking_chicago':
-      case 'asking_four_of_a_kind':
-      case 'asking_one_open':
       case 'killed':
       case 'over':
         setSelectedCards([])

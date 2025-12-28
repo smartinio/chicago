@@ -1,8 +1,9 @@
 import { dealCards } from '#game/dealCards'
 import { Card, PlayedCard, Trick, Game, Player, Round, GameEvent, Results } from '#game/types'
-import { createTrick, decideWinningPlayedCard, getPlayerNextTo } from '#game/utils'
+import { BestHand, createTrick, decideWinningPlayedCard, getPlayerNextTo } from '#game/utils'
 import { destroyGameAsOwner } from './store'
 import { last } from '#utils/last'
+import { v7 as uuid } from 'uuid'
 
 /**
  * Methods that mutate the game state are collected here
@@ -10,8 +11,8 @@ import { last } from '#utils/last'
  * Useful when bug hunting or deciding whether to compute before or after state change
  */
 export const mutate = {
-  addEvent: (params: { game: Game; event: GameEvent }) => {
-    params.game.events.push({ ...params.event, timestamp: Date.now() })
+  addEvent: (params: { game: Game; event: Omit<GameEvent, 'timestamp' | 'id'> }) => {
+    params.game.events.push({ ...params.event, timestamp: Date.now(), id: uuid().slice(0, -12) })
   },
 
   addPlayer: (params: { game: Game; player: Player }) => {
@@ -144,9 +145,9 @@ export const mutate = {
     }
   },
 
-  setChicagoCaller: (params: { game: Game; player: Player; hadBestHand: boolean }) => {
+  setChicagoCaller: (params: { game: Game; player: Player; bestHandPlayers: BestHand[] }) => {
     params.game.round.chicagoCaller = params.player
-    params.game.round.chicagoCallerHadBestHand = params.hadBestHand
+    params.game.round.bestHandPlayers = params.bestHandPlayers
   },
 
   setCurrentPlayer: (params: { game: Game; player: Player }) => {
@@ -257,5 +258,14 @@ export const mutate = {
         }
       }
     }
+
+    const playedCards = game.round.tricks
+      .flatMap((trick) => trick.playedCards)
+      .filter((pc) => pc.player.id === player.id)
+
+    // Return the rain
+    return playedCards
+      .slice(playedCards.findIndex((pc) => pc.card.id === card.id))
+      .map((pc) => pc.card)
   },
 }

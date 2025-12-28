@@ -66,10 +66,11 @@ const App = ({ children }: any) => {
   return (
     <div>
       <Head>
-        <title>Chicago</title>
-        <meta property="og:title" content="Chicago" />
-        <meta name="robots" content="noindex" />
+        <title key="title">Chicago</title>
+        <meta key="og:title" property="og:title" content="Chicago" />
+        <meta key="robots" name="robots" content="noindex" />
         <meta
+          key="viewport"
           name="viewport"
           content="minimum-scale=1.0, initial-scale=1.0, width=device-width, height=device-height,  maximum-scale=1.0, user-scalable=no"
         />

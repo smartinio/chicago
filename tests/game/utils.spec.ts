@@ -45,7 +45,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:2', 'hearts:2', 'spades:5', 'diamonds:8', 'clubs:11')
       )
-      expect(result).toEqual({ handType: 'pair', points: 1 })
+      expect(result).toMatchObject({ handType: 'pair', points: 1 })
+      expect(result.cards).toHaveLength(2)
     })
 
     it('detects a pair of Aces', () => {
@@ -53,7 +54,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:14', 'hearts:14', 'spades:5', 'diamonds:8', 'clubs:11')
       )
-      expect(result).toEqual({ handType: 'pair', points: 1 })
+      expect(result).toMatchObject({ handType: 'pair', points: 1 })
+      expect(result.cards).toHaveLength(2)
     })
 
     it('detects a pair in the middle of the hand', () => {
@@ -61,7 +63,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:3', 'hearts:7', 'spades:7', 'diamonds:10', 'clubs:13')
       )
-      expect(result).toEqual({ handType: 'pair', points: 1 })
+      expect(result).toMatchObject({ handType: 'pair', points: 1 })
+      expect(result.cards).toHaveLength(2)
     })
   })
 
@@ -71,7 +74,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:4', 'hearts:4', 'spades:9', 'diamonds:9', 'clubs:12')
       )
-      expect(result).toEqual({ handType: 'twoPair', points: 2 })
+      expect(result).toMatchObject({ handType: 'twoPair', points: 2 })
+      expect(result.cards).toHaveLength(4)
     })
 
     it('detects two pairs with high and low values', () => {
@@ -79,7 +83,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:2', 'hearts:2', 'spades:14', 'diamonds:14', 'clubs:7')
       )
-      expect(result).toEqual({ handType: 'twoPair', points: 2 })
+      expect(result).toMatchObject({ handType: 'twoPair', points: 2 })
+      expect(result.cards).toHaveLength(4)
     })
 
     it('detects two pairs regardless of order', () => {
@@ -87,7 +92,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:5', 'hearts:8', 'spades:5', 'diamonds:8', 'clubs:11')
       )
-      expect(result).toEqual({ handType: 'twoPair', points: 2 })
+      expect(result).toMatchObject({ handType: 'twoPair', points: 2 })
+      expect(result.cards).toHaveLength(4)
     })
   })
 
@@ -97,7 +103,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:6', 'hearts:6', 'spades:6', 'diamonds:10', 'clubs:13')
       )
-      expect(result).toEqual({ handType: 'threeOfAKind', points: 3 })
+      expect(result).toMatchObject({ handType: 'threeOfAKind', points: 3 })
+      expect(result.cards).toHaveLength(3)
     })
 
     it('detects three Aces', () => {
@@ -105,7 +112,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:14', 'hearts:14', 'spades:14', 'diamonds:5', 'clubs:8')
       )
-      expect(result).toEqual({ handType: 'threeOfAKind', points: 3 })
+      expect(result).toMatchObject({ handType: 'threeOfAKind', points: 3 })
+      expect(result.cards).toHaveLength(3)
     })
 
     it('detects three 2s', () => {
@@ -113,7 +121,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:2', 'hearts:2', 'spades:2', 'diamonds:9', 'clubs:12')
       )
-      expect(result).toEqual({ handType: 'threeOfAKind', points: 3 })
+      expect(result).toMatchObject({ handType: 'threeOfAKind', points: 3 })
+      expect(result.cards).toHaveLength(3)
     })
   })
 
@@ -123,7 +132,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:5', 'hearts:6', 'spades:7', 'diamonds:8', 'clubs:9')
       )
-      expect(result).toEqual({ handType: 'straight', points: 4 })
+      expect(result).toMatchObject({ handType: 'straight', points: 4 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a low straight (A-2-3-4-5)', () => {
@@ -131,7 +141,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5')
       )
-      expect(result).toEqual({ handType: 'straight', points: 4 })
+      expect(result).toMatchObject({ handType: 'straight', points: 4 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a high straight (10-J-Q-K-A)', () => {
@@ -139,7 +150,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14')
       )
-      expect(result).toEqual({ handType: 'straight', points: 4 })
+      expect(result).toMatchObject({ handType: 'straight', points: 4 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a straight regardless of suit order', () => {
@@ -147,7 +159,8 @@ describe('getPointsForHand', () => {
         game,
         hand('hearts:9', 'clubs:8', 'diamonds:7', 'spades:6', 'hearts:5')
       )
-      expect(result).toEqual({ handType: 'straight', points: 4 })
+      expect(result).toMatchObject({ handType: 'straight', points: 4 })
+      expect(result.cards).toHaveLength(5)
     })
   })
 
@@ -157,7 +170,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:2', 'clubs:5', 'clubs:8', 'clubs:11', 'clubs:13')
       )
-      expect(result).toEqual({ handType: 'flush', points: 5 })
+      expect(result).toMatchObject({ handType: 'flush', points: 5 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a flush (all hearts)', () => {
@@ -165,7 +179,8 @@ describe('getPointsForHand', () => {
         game,
         hand('hearts:3', 'hearts:6', 'hearts:9', 'hearts:12', 'hearts:14')
       )
-      expect(result).toEqual({ handType: 'flush', points: 5 })
+      expect(result).toMatchObject({ handType: 'flush', points: 5 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a flush (all spades)', () => {
@@ -173,7 +188,8 @@ describe('getPointsForHand', () => {
         game,
         hand('spades:2', 'spades:4', 'spades:7', 'spades:10', 'spades:13')
       )
-      expect(result).toEqual({ handType: 'flush', points: 5 })
+      expect(result).toMatchObject({ handType: 'flush', points: 5 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a flush (all diamonds)', () => {
@@ -181,7 +197,8 @@ describe('getPointsForHand', () => {
         game,
         hand('diamonds:3', 'diamonds:5', 'diamonds:8', 'diamonds:11', 'diamonds:14')
       )
-      expect(result).toEqual({ handType: 'flush', points: 5 })
+      expect(result).toMatchObject({ handType: 'flush', points: 5 })
+      expect(result.cards).toHaveLength(5)
     })
   })
 
@@ -191,7 +208,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:8', 'hearts:8', 'spades:8', 'diamonds:11', 'clubs:11')
       )
-      expect(result).toEqual({ handType: 'fullHouse', points: 6 })
+      expect(result).toMatchObject({ handType: 'fullHouse', points: 6 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a full house (three Aces and two 2s)', () => {
@@ -199,7 +217,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:14', 'hearts:14', 'spades:14', 'diamonds:2', 'clubs:2')
       )
-      expect(result).toEqual({ handType: 'fullHouse', points: 6 })
+      expect(result).toMatchObject({ handType: 'fullHouse', points: 6 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a full house (three 2s and two Kings)', () => {
@@ -207,7 +226,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:2', 'hearts:2', 'spades:2', 'diamonds:13', 'clubs:13')
       )
-      expect(result).toEqual({ handType: 'fullHouse', points: 6 })
+      expect(result).toMatchObject({ handType: 'fullHouse', points: 6 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a full house regardless of card order', () => {
@@ -215,7 +235,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:7', 'hearts:10', 'spades:7', 'diamonds:10', 'clubs:10')
       )
-      expect(result).toEqual({ handType: 'fullHouse', points: 6 })
+      expect(result).toMatchObject({ handType: 'fullHouse', points: 6 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('correctly identifies full house over three of a kind', () => {
@@ -224,7 +245,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:8', 'hearts:11', 'spades:8', 'diamonds:11', 'hearts:8')
       )
-      expect(result).toEqual({ handType: 'fullHouse', points: 6 })
+      expect(result).toMatchObject({ handType: 'fullHouse', points: 6 })
+      expect(result.cards).toHaveLength(5)
     })
   })
 
@@ -234,7 +256,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:9', 'hearts:9', 'spades:9', 'diamonds:9', 'clubs:5')
       )
-      expect(result).toEqual({ handType: 'fourOfAKind', points: 7 })
+      expect(result).toMatchObject({ handType: 'fourOfAKind', points: 7 })
+      expect(result.cards).toHaveLength(4)
     })
 
     it('detects four Aces', () => {
@@ -242,7 +265,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:14', 'hearts:14', 'spades:14', 'diamonds:14', 'clubs:7')
       )
-      expect(result).toEqual({ handType: 'fourOfAKind', points: 7 })
+      expect(result).toMatchObject({ handType: 'fourOfAKind', points: 7 })
+      expect(result.cards).toHaveLength(4)
     })
 
     it('detects four 2s', () => {
@@ -250,7 +274,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:2', 'hearts:2', 'spades:2', 'diamonds:2', 'clubs:10')
       )
-      expect(result).toEqual({ handType: 'fourOfAKind', points: 7 })
+      expect(result).toMatchObject({ handType: 'fourOfAKind', points: 7 })
+      expect(result.cards).toHaveLength(4)
     })
   })
 
@@ -260,7 +285,8 @@ describe('getPointsForHand', () => {
         game,
         hand('hearts:5', 'hearts:6', 'hearts:7', 'hearts:8', 'hearts:9')
       )
-      expect(result).toEqual({ handType: 'straightFlush', points: 8 })
+      expect(result).toMatchObject({ handType: 'straightFlush', points: 8 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects a low straight flush (A-2-3-4-5 same suit)', () => {
@@ -268,7 +294,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:14', 'clubs:2', 'clubs:3', 'clubs:4', 'clubs:5')
       )
-      expect(result).toEqual({ handType: 'straightFlush', points: 8 })
+      expect(result).toMatchObject({ handType: 'straightFlush', points: 8 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects straight flush in different suits', () => {
@@ -276,7 +303,8 @@ describe('getPointsForHand', () => {
         game,
         hand('spades:6', 'spades:7', 'spades:8', 'spades:9', 'spades:10')
       )
-      expect(result).toEqual({ handType: 'straightFlush', points: 8 })
+      expect(result).toMatchObject({ handType: 'straightFlush', points: 8 })
+      expect(result.cards).toHaveLength(5)
     })
   })
 
@@ -286,7 +314,8 @@ describe('getPointsForHand', () => {
         game,
         hand('hearts:10', 'hearts:11', 'hearts:12', 'hearts:13', 'hearts:14')
       )
-      expect(result).toEqual({ handType: 'royalStraightFlush', points: 52 })
+      expect(result).toMatchObject({ handType: 'royalStraightFlush', points: 52 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects royal flush in clubs', () => {
@@ -294,7 +323,8 @@ describe('getPointsForHand', () => {
         game,
         hand('clubs:10', 'clubs:11', 'clubs:12', 'clubs:13', 'clubs:14')
       )
-      expect(result).toEqual({ handType: 'royalStraightFlush', points: 52 })
+      expect(result).toMatchObject({ handType: 'royalStraightFlush', points: 52 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects royal flush in spades', () => {
@@ -302,7 +332,8 @@ describe('getPointsForHand', () => {
         game,
         hand('spades:10', 'spades:11', 'spades:12', 'spades:13', 'spades:14')
       )
-      expect(result).toEqual({ handType: 'royalStraightFlush', points: 52 })
+      expect(result).toMatchObject({ handType: 'royalStraightFlush', points: 52 })
+      expect(result.cards).toHaveLength(5)
     })
 
     it('detects royal flush in diamonds', () => {
@@ -310,7 +341,8 @@ describe('getPointsForHand', () => {
         game,
         hand('diamonds:10', 'diamonds:11', 'diamonds:12', 'diamonds:13', 'diamonds:14')
       )
-      expect(result).toEqual({ handType: 'royalStraightFlush', points: 52 })
+      expect(result).toMatchObject({ handType: 'royalStraightFlush', points: 52 })
+      expect(result.cards).toHaveLength(5)
     })
   })
 
@@ -564,4 +596,3 @@ describe('tieBreak', () => {
     expect(result).toHaveLength(0)
   })
 })
-

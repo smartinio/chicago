@@ -1,9 +1,21 @@
-import { Card, EventAction, Game, GamePhase, Player, RoundPhase, Suit, Trick } from './types'
+import { Card, EventAction, Game, GamePhase, HandType, Player, RoundPhase } from './types'
 import { last } from '#utils/last'
 
 export type EventSnapshot = {
+  id: string
   actorId: 'server' | string
   action: EventAction
+  data: Partial<{
+    accepted: boolean
+    answer: 'points' | 'reset_others'
+    count: number
+    handType: HandType
+    points: number
+    startingCard: Card
+    player: PlayerSnapshot
+    card: Card
+    cards: Card[]
+  }>
 }
 
 export type PlayerSnapshot = {
@@ -42,17 +54,19 @@ export type Snapshot = {
 const createPlayerSnapshotList = (game: Game): PlayerSnapshot[] => {
   const players = Array.from(game.players)
 
-  return players.map((player) => {
-    return {
-      id: player.id,
-      name: player.name,
-      score: player.score,
-      playedCards: game.round.tricks.flatMap((trick) =>
-        trick.playedCards.filter((p) => p.player.id === player.id).map((p) => p.card)
-      ),
-      takenChicago: player.takenChicago,
-    }
-  })
+  return players.map((player) => createPlayerSnapshot(player, game))
+}
+
+const createPlayerSnapshot = (player: Player, game: Game): PlayerSnapshot => {
+  return {
+    id: player.id,
+    name: player.name,
+    score: player.score,
+    playedCards: game.round.tricks.flatMap((trick) =>
+      trick.playedCards.filter((p) => p.player.id === player.id).map((p) => p.card)
+    ),
+    takenChicago: player.takenChicago,
+  }
 }
 
 export const createSnapshot = (params: { player: Player; game: Game }): Snapshot => {
@@ -73,10 +87,22 @@ export const createSnapshot = (params: { player: Player; game: Game }): Snapshot
     isMyTurn: game.currentPlayer.id === player.id,
     myCards: Array.from(player.cards),
     dealerId: game.dealer.id,
-    events: game.events.map(
+    events: game.events.slice(-20).map(
       (event): EventSnapshot => ({
+        id: event.id,
         action: event.action,
         actorId: event.actor === 'server' ? 'server' : event.actor.id,
+        data: {
+          accepted: event.accepted,
+          answer: event.answer,
+          count: event.count,
+          handType: event.handType,
+          points: event.points,
+          startingCard: event.startingCard,
+          player: event.player ? createPlayerSnapshot(event.player, game) : undefined,
+          card: event.card,
+          cards: event.cards,
+        },
       })
     ),
     trickCount: game.round.tricks.length,

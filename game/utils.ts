@@ -12,7 +12,7 @@ export const getPlayerNextTo = (current: Player, game: Game) => {
   return getNext(game.players, (p) => p.id === current.id)
 }
 
-type BestHand = { player: Player; handType: HandType; points: number }
+export type BestHand = { player: Player; handType: HandType; points: number; cards?: Card[] }
 
 export const getPlayersWithBestHand = (game: Game): BestHand[] => {
   const playerHandValues = game.players.map((player) => ({
@@ -50,44 +50,77 @@ export const tieBreak = (candidates: BestHand[]): BestHand[] => {
 export const getPointsForHand = (
   game: Game,
   hand: Set<Card>
-): { handType: HandType | null; points: number } => {
-  const handType = getHandType(hand)
+): { handType: HandType | null; points: number; cards?: Card[] } => {
+  const result = getHandTypeWithCards(hand)
 
-  if (!handType) {
+  if (!result) {
     return { handType: null, points: 0 }
   }
 
-  return { handType, points: game.rules.handPoints[handType] }
+  return {
+    handType: result.handType,
+    points: game.rules.handPoints[result.handType],
+    cards: result.cards,
+  }
 }
 
-const getHandType = (hand: Set<Card>): HandType | undefined => {
+const getHandTypeWithCards = (
+  hand: Set<Card>
+): { handType: HandType; cards: Card[] } | undefined => {
+  const cards = Array.from(hand).sort((a, b) => b.value - a.value)
+
+  // For hands where all 5 cards matter
   if (isRoyalStraightFlush(hand)) {
-    return 'royalStraightFlush'
+    return { handType: 'royalStraightFlush', cards }
   }
   if (isStraightFlush(hand)) {
-    return 'straightFlush'
-  }
-  if (isFourOfAKind(hand)) {
-    return 'fourOfAKind'
+    return { handType: 'straightFlush', cards }
   }
   if (isFullHouse(hand)) {
-    return 'fullHouse'
+    return { handType: 'fullHouse', cards }
   }
   if (isFlush(hand)) {
-    return 'flush'
+    return { handType: 'flush', cards }
   }
   if (isStraight(hand)) {
-    return 'straight'
+    return { handType: 'straight', cards }
+  }
+
+  // For hands where only some cards matter
+  if (isFourOfAKind(hand)) {
+    return { handType: 'fourOfAKind', cards: getCardsOfAKind(hand, 4) }
   }
   if (isThreeOfAKind(hand)) {
-    return 'threeOfAKind'
+    return { handType: 'threeOfAKind', cards: getCardsOfAKind(hand, 3) }
   }
   if (isTwoPair(hand)) {
-    return 'twoPair'
+    return { handType: 'twoPair', cards: getTwoPairCards(hand) }
   }
   if (isPair(hand)) {
-    return 'pair'
+    return { handType: 'pair', cards: getCardsOfAKind(hand, 2) }
   }
+}
+
+const getCardsOfAKind = (hand: Set<Card>, count: number): Card[] => {
+  const cards = Array.from(hand)
+  const targetValue = cards.find(
+    (card) => cards.filter((c) => c.value === card.value).length === count
+  )?.value
+
+  return cards.filter((c) => c.value === targetValue).sort((a, b) => b.value - a.value)
+}
+
+const getTwoPairCards = (hand: Set<Card>): Card[] => {
+  const cards = Array.from(hand)
+  const pairValues = new Set<number>()
+
+  for (const card of cards) {
+    if (cards.filter((c) => c.value === card.value).length === 2) {
+      pairValues.add(card.value)
+    }
+  }
+
+  return cards.filter((c) => pairValues.has(c.value)).sort((a, b) => b.value - a.value)
 }
 
 const isRoyalStraightFlush = (hand: Set<Card>): boolean => {

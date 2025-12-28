@@ -8,6 +8,7 @@ import { useSnapshot, setSnapshot, useResults, setError, clearPlayerGame } from 
 import { MyHand } from '#views/MyHand'
 import { TopControls } from '#views/TopControls'
 import { Players } from '#views/Players'
+import { EventLog } from '#views/EventLog'
 import { MiddleArea } from '#views/MiddleArea'
 import { memo, useEffect, useRef } from 'react'
 import { cards } from '#utils/card'

@@ -35,9 +35,12 @@ export const answerChicago = publicProcedure
       if (input.takeChicago) {
         // Check if caller has the best hand (for chicagoRequiresBestHand rule)
         const bestHandPlayers = getPlayersWithBestHand(game)
-        const callerHadBestHand = bestHandPlayers.some((p) => p.player.id === player.id)
 
-        mutate.setChicagoCaller({ game, player, hadBestHand: callerHadBestHand })
+        mutate.setChicagoCaller({ game, player, bestHandPlayers })
+        mutate.addEvent({
+          game,
+          event: { actor: player, action: 'answered_chicago', accepted: true },
+        })
         mutate.setRoundPhase({ game, phase: 'tricking' })
         return Results.STARTED_ROUND
       }

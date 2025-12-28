@@ -62,9 +62,11 @@ export const playCard = publicProcedure
     }
 
     const outcome = (() => {
-      if (!otherPlayersCanWinRound(game, player, card)) {
-        mutate.makeItRain({ game, player, card })
-        mutate.addEvent({ game, event: { actor: player, action: 'made_it_rain' } })
+      const makesItRain = !otherPlayersCanWinRound(game, player, card)
+
+      if (makesItRain) {
+        const cards = mutate.makeItRain({ game, player, card })
+        mutate.addEvent({ game, event: { actor: player, action: 'made_it_rain', cards } })
       } else {
         mutate.playCard({ trick, player, card })
         mutate.addEvent({ game, event: { actor: player, action: 'played_card', card } })
@@ -76,7 +78,7 @@ export const playCard = publicProcedure
       if (chicagoCaller) {
         if (winning.player.id !== chicagoCaller.id) {
           mutate.givePoints({ player: chicagoCaller, points: -15 })
-          mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_round' } })
+          mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_chicago' } })
           mutate.endRound({ game, roundWinner: winning.player })
 
           return Results.ROUND_OVER
@@ -89,30 +91,53 @@ export const playCard = publicProcedure
       let nextTricker = getPlayerNextTo(player, game)
 
       if (trickIsOver) {
-        mutate.addEvent({ game, event: { actor: winning.player, action: 'won_trick' } })
+        if (!makesItRain) {
+          mutate.addEvent({ game, event: { actor: winning.player, action: 'won_trick' } })
+        }
         nextTricker = winning.player
 
         if (isLastTrick) {
           if (chicagoCaller) {
+            const { bestHandPlayers = [] } = game.round
             // Check if Chicago caller had the best hand (computed when Chicago was called)
             const callerHasBestHand =
-              !game.rules.chicagoRequiresBestHand || game.round.chicagoCallerHadBestHand
+              !game.rules.chicagoRequiresBestHand ||
+              bestHandPlayers.some((p) => p.player.id === chicagoCaller.id)
 
             if (callerHasBestHand) {
               mutate.givePoints({ player: chicagoCaller, points: 15 })
               mutate.setTakenChicago({ player: chicagoCaller })
-              mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'won_round' } })
+              mutate.addEvent({
+                game,
+                event: { actor: chicagoCaller, action: 'won_round', points: 15 },
+              })
             } else {
               // Chicago caller won all tricks but doesn't have best hand - they fail
               mutate.givePoints({ player: chicagoCaller, points: -15 })
-              mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_round' } })
+
+              for (const { player, cards, handType } of bestHandPlayers) {
+                mutate.addEvent({
+                  game,
+                  event: {
+                    actor: player,
+                    action: 'had_hand_type',
+                    handType,
+                    cards,
+                  },
+                })
+              }
+
+              mutate.addEvent({
+                game,
+                event: { actor: chicagoCaller, action: 'lost_chicago' },
+              })
             }
           } else {
             const points =
               winning.card.value === 2 ? game.rules.pointsForWinWithTwo : game.rules.pointsForWin
 
             mutate.givePoints({ player: winning.player, points })
-            mutate.addEvent({ game, event: { actor: winning.player, action: 'won_round' } })
+            mutate.addEvent({ game, event: { actor: winning.player, action: 'won_round', points } })
 
             const bestHandPlayers = getPlayersWithBestHand(game)
 

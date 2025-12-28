@@ -46,7 +46,7 @@ const AvatarBadge = (props: TagProps) => {
   )
 }
 
-const PlayerRow = ({ children }: any) => {
+const PlayerRow = ({ children }: { children: React.ReactNode }) => {
   return (
     <Flex direction="row" justify="space-between" gap={2}>
       {children}
@@ -156,6 +156,8 @@ const Player = (props: {
   const isCurrentDealer =
     gamePhase === 'round' && ['over', 'killed'].includes(roundPhase) && player.id === dealerId
 
+  const isDealer = player.id === dealerId
+
   const shouldShowSpinner = isCurrentDealer || isCurrentPlayer
   const latestPlayedCard = player.playedCards.at(-1)
   const isStartingCard = startingCard && latestPlayedCard?.id === startingCard.id
@@ -175,8 +177,8 @@ const Player = (props: {
   }
 
   return (
-    <Flex gap="2" align="flex-start" flexDirection={flexDirection} flex={1}>
-      <VStack spacing="2" align="center">
+    <Flex gap="2" align="stretch" flexDirection={flexDirection} flex={1}>
+      <VStack spacing="1" align="center" flexShrink={0}>
         <Box position="relative">
           <Box borderRadius="full" backgroundColor="lightyellow">
             <Avatar
@@ -217,6 +219,21 @@ const Player = (props: {
               </Button>
             </Box>
           ) : null}
+          {isDealer ? (
+            <Box position="absolute" bottom={0} right={0}>
+              <Tag
+                size="xs"
+                colorScheme="green"
+                borderRadius="full"
+                boxShadow="0px 0px 5px rgba(0,0,0,0.25)"
+                minWidth="20px"
+                minHeight="20px"
+                justifyContent="center"
+              >
+                D
+              </Tag>
+            </Box>
+          ) : null}
         </Box>
 
         <Flex alignItems="center" direction="column" gap={1}>
@@ -232,7 +249,7 @@ const Player = (props: {
             background={hasHighestScore ? 'black' : undefined}
             color={hasHighestScore ? 'white' : undefined}
           >
-            {player.score}p {player.takenChicago ? '🚀' : ''}
+            {player.score}p{player.takenChicago ? ' 🚀' : ''}
           </Tag>
           {isGameWinner ? (
             <Tag size="sm" background="green.500" color="white">
@@ -246,14 +263,34 @@ const Player = (props: {
         </VStack>
       </VStack>
 
-      <Box maxWidth="150px" position="relative" backgroundColor="blackAlpha.100" borderRadius="md">
+      <Box
+        width="min(110px, 24vw)"
+        aspectRatio="167/243"
+        flexShrink={0}
+        alignSelf="flex-start"
+        position="relative"
+        backgroundColor="blackAlpha.100"
+        borderRadius="md"
+        overflow="visible"
+      >
         {latestPlayedCard ? (
-          <SlideFade {...cardSlideFadeProps}>
-            <PlayingCard card={latestPlayedCard} pulse={pulseCard} opacity={playedCardOpacity} />
-          </SlideFade>
-        ) : (
-          <PlayingCard card={placeholderCard} opacity={0} />
-        )}
+          <Box
+            position="absolute"
+            inset={0}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <SlideFade {...cardSlideFadeProps}>
+              <PlayingCard
+                card={latestPlayedCard}
+                pulse={pulseCard}
+                opacity={playedCardOpacity}
+                width="100%"
+              />
+            </SlideFade>
+          </Box>
+        ) : null}
       </Box>
     </Flex>
   )

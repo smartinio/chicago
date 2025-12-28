@@ -1,3 +1,5 @@
+import { BestHand } from '#game/utils'
+
 export type Suit = 'spades' | 'clubs' | 'hearts' | 'diamonds'
 export type Value = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14
 
@@ -39,7 +41,7 @@ export type Round = {
   phase: RoundPhase
   throwCycles: boolean[][]
   chicagoCaller?: Player
-  chicagoCallerHadBestHand?: boolean
+  bestHandPlayers?: BestHand[]
   openCard?: Card
   winner?: Player
 }
@@ -50,11 +52,12 @@ export type EventAction =
   | 'kicked_player'
   | 'played_card'
   | 'made_it_rain'
+  | 'had_hand_type'
   | 'killed_round'
   | 'restarted_round'
   | 'received_points'
   | 'started_round'
-  | 'lost_round'
+  | 'lost_chicago'
   | 'threw_cards'
   | 'won_trick'
   | 'won_round'
@@ -64,9 +67,12 @@ export type EventAction =
   | 'answered_four_of_a_kind'
 
 export type GameEvent = {
+  id: string
   actor: Player | 'server'
   action: EventAction
+  timestamp: number
   card?: Card
+  cards?: Card[]
   startingCard?: Card
   player?: Player
   count?: number
@@ -74,7 +80,6 @@ export type GameEvent = {
   points?: number
   accepted?: boolean
   answer?: 'points' | 'reset_others'
-  timestamp?: number
 }
 
 export type GamePhase = 'new' | 'round' | 'over'
