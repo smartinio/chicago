@@ -53,6 +53,7 @@ export const answerFourOfAKind = publicProcedure
         })
 
         if (nextPlayer) {
+          mutate.setRoundPhase({ game, phase: 'throwing' })
           mutate.setCurrentPlayer({ game, player: nextPlayer })
         } else {
           throwingPhase.moveToNextPhase({ game })

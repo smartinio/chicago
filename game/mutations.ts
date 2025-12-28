@@ -12,7 +12,7 @@ import { v7 as uuid } from 'uuid'
  */
 export const mutate = {
   addEvent: (params: { game: Game; event: Omit<GameEvent, 'timestamp' | 'id'> }) => {
-    params.game.events.push({ ...params.event, timestamp: Date.now(), id: uuid().slice(0, -12) })
+    params.game.events.push({ ...params.event, timestamp: Date.now(), id: uuid().slice(-12) })
   },
 
   addPlayer: (params: { game: Game; player: Player }) => {
