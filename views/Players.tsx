@@ -247,48 +247,47 @@ const Player = (props: {
       >
         {player.playedCards.length > 0 ? (
           <Box position="absolute" inset={0}>
-            <SlideFade {...cardSlideFadeProps}>
-              <Box position="relative" width="100%" height="100%">
-                {(() => {
-                  const cardCount = player.playedCards.length
-                  // Dynamic offset: more generous for fewer cards, tighter for more
-                  // 2 cards: 14px, 3 cards: 12px, 4 cards: 10px, 5 cards: 8px
-                  const offsetPx = Math.max(8, 18 - cardCount * 2)
-                  // Total offset space needed for all cards except the last
-                  const totalOffset = (cardCount - 1) * offsetPx
-                  // Card width = container width - total offset, so last card fits
-                  const cardWidth = `calc(min(110px, 24vw) - ${totalOffset}px)`
+            <Box position="relative" width="100%" height="100%">
+              {(() => {
+                const cardCount = player.playedCards.length
+                // Dynamic offset: more generous for fewer cards, tighter for more
+                // 2 cards: 14px, 3 cards: 12px, 4 cards: 10px, 5 cards: 8px
+                const offsetPx = Math.max(8, 18 - cardCount * 2)
+                // Total offset space needed for all cards except the last
+                const totalOffset = (cardCount - 1) * offsetPx
+                // Card width = container width - total offset, so last card fits
+                const cardWidth = `calc(min(110px, 24vw) - ${totalOffset}px)`
 
-                  // Vertical offset scaled by aspect ratio (243/167)
-                  const offsetYPx = offsetPx * (243 / 167)
+                // Vertical offset scaled by aspect ratio (243/167)
+                const offsetYPx = offsetPx * (243 / 167)
 
-                  // Direction based on player position - stacks point toward center
-                  // i=0: top-left → down-right (+X, +Y)
-                  // i=1: top-right → down-left (-X, +Y)
-                  // i=2: bottom-left → up-right (+X, -Y)
-                  // i=3: bottom-right → up-left (-X, -Y)
-                  const xDir = i === 1 || i === 3 ? -1 : 1
-                  const yDir = i === 2 || i === 3 ? -1 : 1
+                // Direction based on player position - stacks point toward center
+                // i=0: top-left → down-right (+X, +Y)
+                // i=1: top-right → down-left (-X, +Y)
+                // i=2: bottom-left → up-right (+X, -Y)
+                // i=3: bottom-right → up-left (-X, -Y)
+                const xDir = i === 1 || i === 3 ? -1 : 1
+                const yDir = i === 2 || i === 3 ? -1 : 1
 
-                  // For reversed directions, calculate position from the end
-                  const totalOffsetX = totalOffset
-                  const totalOffsetY = totalOffset * (243 / 167)
+                // For reversed directions, calculate position from the end
+                const totalOffsetX = totalOffset
+                const totalOffsetY = totalOffset * (243 / 167)
 
-                  return player.playedCards.map((card, cardIndex) => {
-                    const isLatest = cardIndex === player.playedCards.length - 1
-                    const isPulse = isLatest && pulseCard
+                return player.playedCards.map((card, cardIndex) => {
+                  const isLatest = cardIndex === player.playedCards.length - 1
+                  const isPulse = isLatest && pulseCard
 
-                    // For normal direction: first card at 0, last at totalOffset
-                    // For reversed direction: first card at totalOffset, last at 0
-                    const baseOffsetX = cardIndex * offsetPx
-                    const baseOffsetY = cardIndex * offsetYPx
+                  // For normal direction: first card at 0, last at totalOffset
+                  // For reversed direction: first card at totalOffset, last at 0
+                  const baseOffsetX = cardIndex * offsetPx
+                  const baseOffsetY = cardIndex * offsetYPx
 
-                    const left = xDir === 1 ? baseOffsetX : totalOffsetX - baseOffsetX
-                    const top = yDir === 1 ? baseOffsetY : totalOffsetY - baseOffsetY
+                  const left = xDir === 1 ? baseOffsetX : totalOffsetX - baseOffsetX
+                  const top = yDir === 1 ? baseOffsetY : totalOffsetY - baseOffsetY
 
-                    return (
+                  return (
+                    <SlideFade key={card.id} {...cardSlideFadeProps}>
                       <Box
-                        key={card.id}
                         position="absolute"
                         top={`${top}px`}
                         left={`${left}px`}
@@ -297,11 +296,11 @@ const Player = (props: {
                       >
                         <PlayingCard card={card} pulse={isPulse} width={cardWidth} />
                       </Box>
-                    )
-                  })
-                })()}
-              </Box>
-            </SlideFade>
+                    </SlideFade>
+                  )
+                })
+              })()}
+            </Box>
           </Box>
         ) : null}
       </Box>
