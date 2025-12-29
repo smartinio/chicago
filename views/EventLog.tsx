@@ -92,7 +92,7 @@ const formatEvent = (
         actor,
         message: `had ${handName}: ${data.cards?.map(formatCard).join(', ')} 🃏`,
       }
-    }
+      }
     case 'received_points': {
       const pts = data.points ?? 0
       const hand = data.handType ? handTypeNames[data.handType] ?? data.handType : 'hand'

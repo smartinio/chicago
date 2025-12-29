@@ -156,11 +156,13 @@ export const playCard = publicProcedure
                 return Results.PLAYED_TRICK
               }
 
-              mutate.givePoints({ player, points })
-              mutate.addEvent({
-                game,
-                event: { actor: player, action: 'received_points', points, handType },
-              })
+              if (points > 0) {
+                mutate.givePoints({ player, points })
+                mutate.addEvent({
+                  game,
+                  event: { actor: player, action: 'received_points', points, handType },
+                })
+              }
             }
           }
           mutate.endRound({ game, roundWinner: actualWinner })

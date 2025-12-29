@@ -131,11 +131,13 @@ export const handlePostThrow = (params: { game: Game; player: Player; cycle: boo
         return undefined
       }
 
-      mutate.givePoints({ player, points })
-      mutate.addEvent({
-        game,
-        event: { actor: player, action: 'received_points', points, handType },
-      })
+      if (points > 0) {
+        mutate.givePoints({ player, points })
+        mutate.addEvent({
+          game,
+          event: { actor: player, action: 'received_points', points, handType },
+        })
+      }
     }
 
     mutate.addEvent({
