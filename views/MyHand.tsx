@@ -1,4 +1,4 @@
-import { Box, Button, Flex, HStack, SlideFade, Tag, VStack } from '@chakra-ui/react'
+import { Box, Button, Flex, HStack, SlideFade, Tag } from '@chakra-ui/react'
 import {
   DndContext,
   DragEndEvent,
@@ -30,9 +30,6 @@ export const MyHand = () => {
   const mutationOptions = { onSuccess: dataHandler(() => {}, handleError) }
   const throwCardsMutation = trpc.throwCards.useMutation(mutationOptions)
   const playCardMutation = trpc.playCard.useMutation(mutationOptions)
-  const answerChicagoMutation = trpc.answerChicago.useMutation(mutationOptions)
-  const answerOneOpenMutation = trpc.answerOneOpen.useMutation(mutationOptions)
-  const answerFourOfAKindMutation = trpc.answerFourOfAKind.useMutation(mutationOptions)
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 1 } })
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 1 } })
@@ -174,22 +171,6 @@ export const MyHand = () => {
     throwCards({ oneOpen: true })
   }
 
-  const handleAcceptOneOpenPress = () => {
-    answerOneOpenMutation.mutate({ gameId, playerSecret, acceptOpen: true })
-  }
-
-  const handleRejectOneOpenPress = () => {
-    answerOneOpenMutation.mutate({ gameId, playerSecret, acceptOpen: false })
-  }
-
-  const handleAcceptChicagoPress = () => {
-    answerChicagoMutation.mutate({ gameId, playerSecret, takeChicago: true })
-  }
-
-  const handleRejectChicagoPress = () => {
-    answerChicagoMutation.mutate({ gameId, playerSecret, takeChicago: false })
-  }
-
   const handleDragEnd = (e: DragEndEvent) => {
     setPendingDropCard(undefined)
     setSelectedCards([])
@@ -205,15 +186,7 @@ export const MyHand = () => {
     }
   }
 
-  const handleFourOfAKindPointsPress = () => {
-    answerFourOfAKindMutation.mutate({ gameId, playerSecret, answer: 'points' })
-  }
-
-  const handleFourOfAKindZeroOthersPress = () => {
-    answerFourOfAKindMutation.mutate({ gameId, playerSecret, answer: 'reset_others' })
-  }
-
-  const { isMyTurn, myCards, roundPhase, gamePhase, oneOpenAvailable, rules } = snapshot
+  const { isMyTurn, myCards, roundPhase, gamePhase, oneOpenAvailable } = snapshot
   const sortedCards = sortBySuitAndValue(myCards)
   const canPlay = isMyTurn && ['tricking', 'throwing'].includes(roundPhase)
 
@@ -282,80 +255,8 @@ export const MyHand = () => {
                             Play
                           </Button>
                         )
-                      case 'asking_chicago':
-                        return (
-                          isMyTurn && (
-                            <VStack spacing="2" justifyContent="center">
-                              <strong>Chicago?</strong>
-                              <HStack spacing="2" justifyContent="center">
-                                <Button
-                                  onClick={handleAcceptChicagoPress}
-                                  variant="solid"
-                                  colorScheme="green"
-                                  borderRadius="3xl"
-                                  boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
-                                >
-                                  Yes
-                                </Button>
-                                <Button
-                                  onClick={handleRejectChicagoPress}
-                                  variant="solid"
-                                  colorScheme="red"
-                                  borderRadius="3xl"
-                                  boxShadow="0px 5px 15px rgba(0,0,0,0.2)"
-                                >
-                                  No
-                                </Button>
-                              </HStack>
-                            </VStack>
-                          )
-                        )
-                      case 'asking_four_of_a_kind':
-                        return (
-                          isMyTurn && (
-                            <HStack spacing="2" justifyContent="center">
-                              <Button
-                                onClick={handleFourOfAKindPointsPress}
-                                variant="solid"
-                                colorScheme="green"
-                                borderRadius="3xl"
-                              >
-                                {rules.handPoints.fourOfAKind} points
-                              </Button>
-                              <Button
-                                onClick={handleFourOfAKindZeroOthersPress}
-                                variant="solid"
-                                colorScheme="red"
-                                borderRadius="3xl"
-                              >
-                                Zero others
-                              </Button>
-                            </HStack>
-                          )
-                        )
-                      case 'asking_one_open':
-                        return (
-                          isMyTurn && (
-                            <HStack spacing="2" justifyContent="center">
-                              <Button
-                                onClick={handleAcceptOneOpenPress}
-                                variant="solid"
-                                colorScheme="green"
-                                borderRadius="3xl"
-                              >
-                                Accept
-                              </Button>
-                              <Button
-                                onClick={handleRejectOneOpenPress}
-                                variant="solid"
-                                colorScheme="red"
-                                borderRadius="3xl"
-                              >
-                                Reject
-                              </Button>
-                            </HStack>
-                          )
-                        )
+                      // asking_chicago, asking_four_of_a_kind, and asking_one_open
+                      // are now handled in MiddleArea component
                       default:
                         return null
                     }

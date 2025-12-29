@@ -11,6 +11,7 @@ import { Errors, Game, isError, Results } from '#game/types'
 import { dealCards } from '#game/dealCards'
 import { createCallerFactory } from '#server/trpc'
 import { card, createMockDealCards, defaultHands, HandFixture } from './chicago-fixtures'
+import { CARDS_BY_ID } from '#game/constants'
 
 // Mock dealCards to control card distribution
 const mockDealCards = dealCards as jest.Mock
@@ -1952,6 +1953,73 @@ describe('Chicago: Four of a Kind', () => {
     })
 
     expect(result).toBe(Results.THREW_CARDS)
+  })
+
+  test('Four of a kind obtained on final throw is detected at round end (repro: Harvey bug)', async () => {
+    // User-reported bug: Harvey got four 2s on the LAST (3rd) throw cycle.
+    // Since best hand evaluation only happens after cycles 1 & 2 (not after the final cycle),
+    // four of a kind must be detected at round end after all tricks.
+    //
+    // To simulate this, we set up Harvey with NO four of a kind initially,
+    // then manually give him four 2s before tricking starts (simulating the final throw).
+
+    // Initial hands - Harvey does NOT have four of a kind (3-player game)
+    const initialHands: HandFixture = {
+      player1: [
+        card('hearts:14'),
+        card('hearts:13'),
+        card('hearts:8'),
+        card('spades:13'),
+        card('spades:3'),
+      ],
+      player2: [
+        card('hearts:4'),
+        card('hearts:7'),
+        card('diamonds:4'),
+        card('spades:7'),
+        card('clubs:7'),
+      ],
+      player3: [
+        // Harvey - pair of 2s initially (NOT four of a kind)
+        card('hearts:2'),
+        card('hearts:11'),
+        card('diamonds:2'),
+        card('spades:9'),
+        card('clubs:10'),
+      ],
+      player4: [], // Unused - 3-player game
+    }
+    mockDealCards.mockImplementation(createMockDealCards(initialHands))
+
+    const { game } = await setupGame(caller, 3)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+
+    // Harvey should NOT have triggered four of a kind during throws
+    expect(game.round.phase).not.toBe('asking_four_of_a_kind')
+
+    // Now simulate Harvey getting four 2s on the final throw by directly setting his cards
+    const harvey = game.players[2]
+    harvey.cards.clear()
+    harvey.cards.add(CARDS_BY_ID['hearts:2'])
+    harvey.cards.add(CARDS_BY_ID['hearts:11'])
+    harvey.cards.add(CARDS_BY_ID['diamonds:2'])
+    harvey.cards.add(CARDS_BY_ID['spades:2'])
+    harvey.cards.add(CARDS_BY_ID['clubs:2'])
+
+    // Verify Harvey now has four 2s
+    const twos = Array.from(harvey.cards).filter((c) => c.value === 2)
+    expect(twos.length).toBe(4)
+
+    await declineAllChicago(caller, game)
+    expect(game.round.phase).toBe('tricking')
+
+    // Play all tricks
+    await playAllTricks(caller, game)
+
+    // After tricks, four of a kind should be detected and trigger asking_four_of_a_kind
+    expect(game.round.phase).toBe('asking_four_of_a_kind')
+    expect(game.currentPlayer.id).toBe(harvey.id)
   })
 })
 
