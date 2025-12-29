@@ -37,15 +37,19 @@ export const Players = ({ children }: { children: React.ReactNode }) => {
   const p1p2 = sortedPlayers.slice(0, 2)
   const p3p4 = sortedPlayers.slice(2, 4)
 
-  const renderPlayer = (player: PlayerSnapshot, i: number) => (
-    <Player key={player.id} sortedPlayers={sortedPlayers} player={player} index={i} />
-  )
-
   return (
     <Flex direction="column">
-      <PlayerRow>{p1p2.map(renderPlayer)}</PlayerRow>
+      <PlayerRow>
+        {p1p2.map((player, i) => (
+          <Player key={player.id} sortedPlayers={sortedPlayers} player={player} index={i} />
+        ))}
+      </PlayerRow>
       {children}
-      <PlayerRow>{p3p4.map(renderPlayer)}</PlayerRow>
+      <PlayerRow>
+        {p3p4.map((player, i) => (
+          <Player key={player.id} sortedPlayers={sortedPlayers} player={player} index={i + 2} />
+        ))}
+      </PlayerRow>
     </Flex>
   )
 }
@@ -129,13 +133,12 @@ const Player = (props: {
 
   const shouldShowSpinner = isCurrentDealer || isCurrentPlayer
   const latestPlayedCard = player.playedCards.at(-1)
-  const isStartingCard = startingCard && latestPlayedCard?.id === startingCard.id
-  const pulseCard = isStartingCard && roundPhase === 'tricking'
+  const pulseCard =
+    roundPhase === 'tricking' && startingCard && latestPlayedCard?.id === startingCard.id
   const hasHighestScore =
     player.score && sortedPlayers.every((opponent) => opponent.score <= player.score)
 
   const cardSlideFadeProps = getSlideFadePropsForPlayer({ player, sortedPlayers, currentPlayerId })
-  const playedCardOpacity = player.playedCards.length === snapshot?.trickCount ? 1 : 0.3
 
   const kickPlayer = (player: PlayerSnapshot) => {
     const shouldKick = confirm(`Are you sure you want to kick ${player.name}?`)
@@ -236,27 +239,68 @@ const Player = (props: {
         width="min(110px, 24vw)"
         aspectRatio="167/243"
         flexShrink={0}
-        alignSelf="flex-start"
+        alignSelf={i >= 2 ? 'flex-end' : 'flex-start'}
         position="relative"
-        backgroundColor="blackAlpha.100"
+        backgroundColor={player.playedCards.length === 0 ? 'blackAlpha.100' : 'transparent'}
         borderRadius="md"
         overflow="visible"
       >
-        {latestPlayedCard ? (
-          <Box
-            position="absolute"
-            inset={0}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
+        {player.playedCards.length > 0 ? (
+          <Box position="absolute" inset={0}>
             <SlideFade {...cardSlideFadeProps}>
-              <PlayingCard
-                card={latestPlayedCard}
-                pulse={pulseCard}
-                opacity={playedCardOpacity}
-                width="100%"
-              />
+              <Box position="relative" width="100%" height="100%">
+                {(() => {
+                  const cardCount = player.playedCards.length
+                  // Dynamic offset: more generous for fewer cards, tighter for more
+                  // 2 cards: 14px, 3 cards: 12px, 4 cards: 10px, 5 cards: 8px
+                  const offsetPx = Math.max(8, 18 - cardCount * 2)
+                  // Total offset space needed for all cards except the last
+                  const totalOffset = (cardCount - 1) * offsetPx
+                  // Card width = container width - total offset, so last card fits
+                  const cardWidth = `calc(min(110px, 24vw) - ${totalOffset}px)`
+
+                  // Vertical offset scaled by aspect ratio (243/167)
+                  const offsetYPx = offsetPx * (243 / 167)
+
+                  // Direction based on player position - stacks point toward center
+                  // i=0: top-left → down-right (+X, +Y)
+                  // i=1: top-right → down-left (-X, +Y)
+                  // i=2: bottom-left → up-right (+X, -Y)
+                  // i=3: bottom-right → up-left (-X, -Y)
+                  const xDir = i === 1 || i === 3 ? -1 : 1
+                  const yDir = i === 2 || i === 3 ? -1 : 1
+
+                  // For reversed directions, calculate position from the end
+                  const totalOffsetX = totalOffset
+                  const totalOffsetY = totalOffset * (243 / 167)
+
+                  return player.playedCards.map((card, cardIndex) => {
+                    const isLatest = cardIndex === player.playedCards.length - 1
+                    const isPulse = isLatest && pulseCard
+
+                    // For normal direction: first card at 0, last at totalOffset
+                    // For reversed direction: first card at totalOffset, last at 0
+                    const baseOffsetX = cardIndex * offsetPx
+                    const baseOffsetY = cardIndex * offsetYPx
+
+                    const left = xDir === 1 ? baseOffsetX : totalOffsetX - baseOffsetX
+                    const top = yDir === 1 ? baseOffsetY : totalOffsetY - baseOffsetY
+
+                    return (
+                      <Box
+                        key={card.id}
+                        position="absolute"
+                        top={`${top}px`}
+                        left={`${left}px`}
+                        zIndex={cardIndex}
+                        filter={isLatest ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' : undefined}
+                      >
+                        <PlayingCard card={card} pulse={isPulse} width={cardWidth} />
+                      </Box>
+                    )
+                  })
+                })()}
+              </Box>
             </SlideFade>
           </Box>
         ) : null}
