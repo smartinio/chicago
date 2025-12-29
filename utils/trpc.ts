@@ -18,12 +18,19 @@ function getEndingLink() {
     })
   }
 
+  // Use the actual hostname the page was loaded from (important for mobile/LAN access in dev)
+  const wsHost = window.location.hostname
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+
+  // In dev, use WS_PORT (3001). In prod, omit port to use default (443 for wss)
+  const wsUrl =
+    process.env.NODE_ENV === 'development'
+      ? `${wsProtocol}//${wsHost}:${WS_PORT}/ws`
+      : `${wsProtocol}//${wsHost}/ws`
+
   return wsLink({
     client: createWSClient({
-      url:
-        process.env.NODE_ENV === 'development'
-          ? `ws://${SERVER_HOST}:${WS_PORT}/ws`
-          : `wss://${SERVER_HOST}/ws`,
+      url: wsUrl,
     }),
   })
 }

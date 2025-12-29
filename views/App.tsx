@@ -12,8 +12,8 @@ import { extendTheme } from '@chakra-ui/react'
 
 const theme = extendTheme({
   config: {
-    initialColorMode: 'light',
-    useSystemColorMode: false,
+    initialColorMode: 'dark',
+    useSystemColorMode: true,
   },
 })
 
@@ -72,8 +72,9 @@ const App = ({ children }: any) => {
         <meta
           key="viewport"
           name="viewport"
-          content="minimum-scale=1.0, initial-scale=1.0, width=device-width, height=device-height,  maximum-scale=1.0, user-scalable=no"
+          content="minimum-scale=1.0, initial-scale=1.0, width=device-width, height=device-height, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
         />
+        <meta key="theme-color" name="theme-color" content="#000000" />
       </Head>
       <main className={font.className}>
         <ErrorBoundary>

@@ -1,5 +1,3 @@
-import { BestHand } from '#game/utils'
-
 export type Suit = 'spades' | 'clubs' | 'hearts' | 'diamonds'
 export type Value = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14
 
@@ -41,7 +39,6 @@ export type Round = {
   phase: RoundPhase
   throwCycles: boolean[][]
   chicagoCaller?: Player
-  bestHandPlayers?: BestHand[]
   openCard?: Card
   winner?: Player
 }

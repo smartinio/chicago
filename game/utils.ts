@@ -17,7 +17,7 @@ export type BestHand = { player: Player; handType: HandType; points: number; car
 export const getPlayersWithBestHand = (game: Game): BestHand[] => {
   const playerHandValues = game.players.map((player) => ({
     player,
-    ...getPointsForHand(game, player.cards),
+    ...getPointsForHand(game, getHand(game, player)),
   }))
 
   const bestValue = Math.max(...playerHandValues.map((p) => p.points))
@@ -27,6 +27,22 @@ export const getPlayersWithBestHand = (game: Game): BestHand[] => {
   )
 
   return tieBreak(candidates)
+}
+
+const getHand = (game: Game, player: Player): Set<Card> => {
+  const hand = new Set(
+    game.round.tricks.flatMap((trick) =>
+      trick.playedCards
+        .filter((played) => played.player.id === player.id)
+        .map((played) => played.card)
+    )
+  )
+
+  for (const card of Array.from(player.cards)) {
+    hand.add(card)
+  }
+
+  return hand
 }
 
 export const tieBreak = (candidates: BestHand[]): BestHand[] => {

@@ -1388,6 +1388,63 @@ describe('Chicago: Trick-Taking', () => {
       // Player 3 should have received points for three of a kind
       expect(player3.score).toBeGreaterThanOrEqual(scoreBeforeTricks)
     })
+
+    test('Best hand points are awarded at round end when nobody calls Chicago', async () => {
+      // P3 has a flush (all hearts) - worth 5 points
+      // P3 does NOT have the winning cards, so won't win the round (avoiding confusion with round win points)
+      const p3HasFlush: HandFixture = {
+        player1: [
+          card('clubs:14'), // Ace of clubs - high card to potentially win tricks
+          card('spades:13'),
+          card('diamonds:12'),
+          card('clubs:11'),
+          card('spades:10'),
+        ],
+        player2: [
+          card('clubs:2'),
+          card('spades:3'),
+          card('diamonds:4'),
+          card('clubs:5'),
+          card('spades:6'),
+        ],
+        player3: [
+          card('hearts:2'), // Flush in hearts - worth 5 points, but low cards
+          card('hearts:4'),
+          card('hearts:6'),
+          card('hearts:8'),
+          card('hearts:10'),
+        ],
+        player4: [
+          card('diamonds:2'),
+          card('clubs:3'),
+          card('spades:4'),
+          card('diamonds:6'),
+          card('clubs:8'),
+        ],
+      }
+      mockDealCards.mockImplementation(createMockDealCards(p3HasFlush))
+
+      const { game } = await setupGame(caller, 4)
+      await startRound(caller, game)
+      await skipAllThrows(caller, game)
+      await declineAllChicago(caller, game)
+
+      const player3 = game.players[2]
+      const scoreBeforeTricks = player3.score
+
+      await playAllTricks(caller, game)
+
+      expect(game.round.phase).toBe('over')
+      // Player 3 should have received exactly 5 points for flush
+      expect(player3.score).toBe(scoreBeforeTricks + 5)
+
+      // Verify the event was recorded
+      const receivedPointsEvent = game.events.find(
+        (e) => e.action === 'received_points' && e.actor === player3 && e.handType === 'flush'
+      )
+      expect(receivedPointsEvent).toBeDefined()
+      expect(receivedPointsEvent?.points).toBe(5)
+    })
   })
 })
 

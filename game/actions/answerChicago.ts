@@ -3,7 +3,7 @@ import { publicProcedure } from '#server/trpc'
 import { getGameAsCurrentPlayer } from '#game/store'
 import { Errors, isError, Results } from '#shared/types'
 import { mutate } from '#game/mutations'
-import { getPlayerNextTo, getPlayersWithBestHand } from '#game/utils'
+import { getPlayerNextTo } from '#game/utils'
 import { updateClients } from '#game/emitter'
 
 export const answerChicago = publicProcedure
@@ -33,10 +33,7 @@ export const answerChicago = publicProcedure
 
     const outcome = (() => {
       if (input.takeChicago) {
-        // Check if caller has the best hand (for chicagoRequiresBestHand rule)
-        const bestHandPlayers = getPlayersWithBestHand(game)
-
-        mutate.setChicagoCaller({ game, player, bestHandPlayers })
+        mutate.setChicagoCaller({ game, player })
         mutate.addEvent({
           game,
           event: { actor: player, action: 'answered_chicago', accepted: true },

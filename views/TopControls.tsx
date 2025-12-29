@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverHeader,
   PopoverBody,
-  PopoverCloseButton,
+  PopoverArrow,
   Text,
 } from '@chakra-ui/react'
 import { useState } from 'react'
@@ -24,7 +24,9 @@ const formatRules = (rules: GameRules) => {
   const numSwaps = rules.numberOfThrows
   return [
     `${numSwaps} ${numSwaps === 1 ? 'swap' : 'swaps'}`,
-    `Chicago ${rules.chicagoCanBeCalledBeforeFifteen ? 'can be called' : 'cannot be called'} before 15p`,
+    `Chicago ${
+      rules.chicagoCanBeCalledBeforeFifteen ? 'can be called' : 'cannot be called'
+    } before 15p`,
     `Chicago ${rules.chicagoRequiresBestHand ? 'requires' : 'does not require'} best hand`,
     `1 open card available at ${rules.oneOpenMode === 'last' ? 'the final swap' : 'every swap'}`,
     `Swapping is banned at ${rules.throwScoreThreshold}p`,
@@ -65,7 +67,15 @@ export const TopControls = () => {
   }
 
   return (
-    <Box position="fixed" top={0} left={0} right={0} backgroundColor="black">
+    <Box
+      position="fixed"
+      top={0}
+      left={0}
+      right={0}
+      backgroundColor="black"
+      zIndex={1000}
+      paddingTop="env(safe-area-inset-top)"
+    >
       <Container paddingY={2}>
         <Flex justifyContent="space-between">
           <HStack spacing="2">
@@ -85,14 +95,14 @@ export const TopControls = () => {
                 {copiedLink ? 'Copied to clipboard!' : 'Invite'}
               </Button>
             ) : null}
-            <Popover placement="bottom-end">
+            <Popover placement="bottom">
               <PopoverTrigger>
                 <Button size="xs" colorScheme="blue" borderRadius="full">
                   Rules
                 </Button>
               </PopoverTrigger>
-              <PopoverContent>
-                <PopoverCloseButton />
+              <PopoverContent zIndex={1001} boxShadow="0px 5px 15px rgba(0,0,0,0.2)">
+                <PopoverArrow />
                 <PopoverHeader fontWeight="semibold">Game Rules</PopoverHeader>
                 <PopoverBody>
                   {formatRules(snapshot.rules).map((rule, i) => (

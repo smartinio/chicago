@@ -98,8 +98,7 @@ export const playCard = publicProcedure
 
         if (isLastTrick) {
           if (chicagoCaller) {
-            const { bestHandPlayers = [] } = game.round
-            // Check if Chicago caller had the best hand (computed when Chicago was called)
+            const bestHandPlayers = getPlayersWithBestHand(game)
             const callerHasBestHand =
               !game.rules.chicagoRequiresBestHand ||
               bestHandPlayers.some((p) => p.player.id === chicagoCaller.id)

@@ -1,4 +1,4 @@
-import { Box, Code, Container, Flex, Spinner, Text } from '@chakra-ui/react'
+import { Box, Code, Container, Flex, LightMode, Spinner, Text } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { trpc } from '#utils/trpc'
 import { Errors, Snapshot, isError } from '#shared/types'
@@ -114,6 +114,14 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
     }
   }, [snapshot?.isMyTurn])
 
+  // Set body background to match game gradient for iOS Safari lip
+  useEffect(() => {
+    document.body.style.background = '#cbd5e0'
+    return () => {
+      document.body.style.background = ''
+    }
+  }, [])
+
   if (!snapshot && error === Errors.FORBIDDEN) {
     return <Start />
   }
@@ -139,16 +147,24 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
   keepAlive.current = true
 
   return (
-    <Flex bgGradient="linear(to-b, gray.200, gray.300)" h="100vh" position="fixed" width="100%">
-      <PreloadedCards />
-      <Container marginTop="20">
-        <TopControls />
-        <Players>
-          <MiddleArea />
-        </Players>
-        <MyHand />
-      </Container>
-    </Flex>
+    <LightMode>
+      <Flex
+        bgGradient="linear(to-b, gray.200, gray.300)"
+        h="100vh"
+        position="fixed"
+        width="100%"
+        color="gray.800"
+      >
+        <PreloadedCards />
+        <Container marginTop="20">
+          <TopControls />
+          <Players>
+            <MiddleArea />
+          </Players>
+          <MyHand />
+        </Container>
+      </Flex>
+    </LightMode>
   )
 }
 

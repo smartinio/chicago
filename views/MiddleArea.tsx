@@ -4,6 +4,7 @@ import { defaultDataHandler } from '#utils/data'
 import { trpc } from '#utils/trpc'
 import { PlayingCard } from '#views/PlayingCard'
 import { EventLog } from '#views/EventLog'
+import { Text } from '@chakra-ui/react'
 
 export const MiddleArea = () => {
   const { snapshot } = useSnapshot()
@@ -19,8 +20,18 @@ export const MiddleArea = () => {
     startNewRoundMutation.mutate({ gameId, dealerSecret: playerSecret })
   }
 
-  const { gamePhase, roundPhase, openCard, canStart } = snapshot
+  const { gamePhase, roundPhase, openCard, canStart, dealerId } = snapshot
+  const dealer = snapshot?.players.find((p) => p.id === dealerId)?.name
   const openOffering = openCard ? <PlayingCard card={openCard} width="50px" /> : null
+  const waitingFor = (() => {
+    if (gamePhase === 'new' && snapshot?.players.length < 2) {
+      return dealer && <Text>Waiting for players</Text>
+    }
+
+    if (gamePhase === 'new' && dealer) {
+      return <Text>Waiting for {dealer} to start</Text>
+    }
+  })()
 
   return (
     <Flex direction="row" justify="center" align="center" height="100px">
@@ -41,7 +52,7 @@ export const MiddleArea = () => {
           })()}
         </Button>
       ) : (
-        openOffering || <EventLog />
+        openOffering || waitingFor || <EventLog />
       )}
     </Flex>
   )

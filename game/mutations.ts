@@ -1,6 +1,6 @@
 import { dealCards } from '#game/dealCards'
 import { Card, PlayedCard, Trick, Game, Player, Round, GameEvent, Results } from '#game/types'
-import { BestHand, createTrick, decideWinningPlayedCard, getPlayerNextTo } from '#game/utils'
+import { createTrick, getPlayerNextTo } from '#game/utils'
 import { destroyGameAsOwner } from './store'
 import { last } from '#utils/last'
 import { v7 as uuid } from 'uuid'
@@ -145,9 +145,8 @@ export const mutate = {
     }
   },
 
-  setChicagoCaller: (params: { game: Game; player: Player; bestHandPlayers: BestHand[] }) => {
+  setChicagoCaller: (params: { game: Game; player: Player }) => {
     params.game.round.chicagoCaller = params.player
-    params.game.round.bestHandPlayers = params.bestHandPlayers
   },
 
   setCurrentPlayer: (params: { game: Game; player: Player }) => {

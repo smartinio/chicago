@@ -1,16 +1,4 @@
-import {
-  Avatar,
-  VStack,
-  Text,
-  Heading,
-  Tag,
-  Box,
-  TagProps,
-  Flex,
-  Spinner,
-  Button,
-  SlideFade,
-} from '@chakra-ui/react'
+import { Avatar, VStack, Text, Tag, Box, Flex, Spinner, Button, SlideFade } from '@chakra-ui/react'
 import { keyframes } from '@emotion/react'
 import confetti from 'canvas-confetti'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -33,31 +21,12 @@ const intensify = keyframes`
   90% { transform: translate(-2px, -1px) rotate(-2deg) scale(1.01); }
 `
 
-const rocketPulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-`
-
-const AvatarBadge = (props: TagProps) => {
-  return (
-    <Box position="absolute" top={0} right={0} overflow="visible">
-      <Tag size="sm" borderRadius="full" {...props} boxShadow="0px 0px 5px rgba(0,0,0,0.25)" />
-    </Box>
-  )
-}
-
 const PlayerRow = ({ children }: { children: React.ReactNode }) => {
   return (
     <Flex direction="row" justify="space-between" gap={2}>
       {children}
     </Flex>
   )
-}
-
-const placeholderCard: Card = {
-  id: 'spades:14',
-  suit: 'spades',
-  value: 14,
 }
 
 export const Players = ({ children }: { children: React.ReactNode }) => {
@@ -101,11 +70,11 @@ const Player = (props: {
       const y = (position.y + 110 + offset) / clientHeight
       confetti({
         origin: { x, y },
-        ticks: 35,
+        ticks: 75,
         scalar: 0.5,
-        gravity: 1.5,
+        gravity: 0.8,
         startVelocity: 22,
-        decay: 0.875,
+        decay: 0.9,
       })
     }
   }, [])
