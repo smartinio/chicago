@@ -23,6 +23,7 @@ const formatCard = (card: Card) => {
 }
 
 const handTypeNames: Record<string, string> = {
+  highCard: 'High Card',
   pair: 'Pair',
   twoPair: 'Two Pair',
   threeOfAKind: 'Three of a Kind',
@@ -84,12 +85,14 @@ const formatEvent = (
       return { actor, message: `got ${data.points || '?'}p for ${thing}! 🙌` }
     }
     case 'lost_chicago':
-      return { actor, message: `lost 15p for failing Chicago! 😢` }
-    case 'had_hand_type':
+      return { actor, message: `failed Chicago (-15p) 😢` }
+    case 'had_hand_type': {
+      const handName = handTypeNames[data.handType ?? ''] ?? data.handType
       return {
         actor,
-        message: `had a ${data.handType} with ${data.cards?.map(formatCard).join(', ')}`,
+        message: `had ${handName}: ${data.cards?.map(formatCard).join(', ')} 🃏`,
       }
+    }
     case 'received_points': {
       const pts = data.points ?? 0
       const hand = data.handType ? handTypeNames[data.handType] ?? data.handType : 'hand'

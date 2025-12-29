@@ -12,19 +12,27 @@ export const getPlayerNextTo = (current: Player, game: Game) => {
   return getNext(game.players, (p) => p.id === current.id)
 }
 
-export type BestHand = { player: Player; handType: HandType; points: number; cards?: Card[] }
+export type BestHand = {
+  player: Player
+  handType: HandType
+  points: number
+  cards: Card[]
+  fullHand: Card[]
+}
 
 export const getPlayersWithBestHand = (game: Game): BestHand[] => {
-  const playerHandValues = game.players.map((player) => ({
-    player,
-    ...getPointsForHand(game, getHand(game, player)),
-  }))
+  const playerHandValues = game.players.map((player) => {
+    const fullHand = getHand(game, player)
+    return {
+      player,
+      fullHand: Array.from(fullHand),
+      ...getPointsForHand(game, fullHand),
+    }
+  })
 
   const bestValue = Math.max(...playerHandValues.map((p) => p.points))
 
-  const candidates = playerHandValues.filter(
-    (p): p is BestHand => p.handType !== null && p.points === bestValue
-  )
+  const candidates = playerHandValues.filter((p) => p.points === bestValue)
 
   return tieBreak(candidates)
 }
@@ -48,11 +56,10 @@ const getHand = (game: Game, player: Player): Set<Card> => {
 export const tieBreak = (candidates: BestHand[]): BestHand[] => {
   if (candidates.length <= 1) return candidates
 
+  // Use the full 5-card hand for tiebreaking (not player.cards which may be empty after tricks)
   let winners = [...candidates].map((c) => ({
     candidate: c,
-    sortedValues: Array.from(c.player.cards)
-      .map((card) => card.value)
-      .sort((a, b) => b - a),
+    sortedValues: c.fullHand.map((card) => card.value).sort((a, b) => b - a),
   }))
 
   for (let i = 0; i < 5 && winners.length > 1; i++) {
@@ -66,12 +73,8 @@ export const tieBreak = (candidates: BestHand[]): BestHand[] => {
 export const getPointsForHand = (
   game: Game,
   hand: Set<Card>
-): { handType: HandType | null; points: number; cards?: Card[] } => {
+): { handType: HandType; points: number; cards: Card[] } => {
   const result = getHandTypeWithCards(hand)
-
-  if (!result) {
-    return { handType: null, points: 0 }
-  }
 
   return {
     handType: result.handType,
@@ -80,9 +83,7 @@ export const getPointsForHand = (
   }
 }
 
-const getHandTypeWithCards = (
-  hand: Set<Card>
-): { handType: HandType; cards: Card[] } | undefined => {
+const getHandTypeWithCards = (hand: Set<Card>): { handType: HandType; cards: Card[] } => {
   const cards = Array.from(hand).sort((a, b) => b.value - a.value)
 
   // For hands where all 5 cards matter
@@ -115,6 +116,9 @@ const getHandTypeWithCards = (
   if (isPair(hand)) {
     return { handType: 'pair', cards: getCardsOfAKind(hand, 2) }
   }
+
+  // No poker hand - return high card (just the highest card)
+  return { handType: 'highCard', cards: cards.slice(0, 1) }
 }
 
 const getCardsOfAKind = (hand: Set<Card>, count: number): Card[] => {

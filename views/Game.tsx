@@ -94,18 +94,35 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
     }
   }, [keepAliveQuery, error])
 
-  const isFocusedRef = useRef(true)
+  const isPageVisibleRef = useRef(true)
 
   useEffect(() => {
-    const listener = () => {
-      isFocusedRef.current = document.hasFocus()
+    // Update on visibility change (tab switch)
+    const handleVisibilityChange = () => {
+      isPageVisibleRef.current = document.visibilityState === 'visible'
     }
-    document.addEventListener('visibilitychange', listener)
-    return () => document.removeEventListener('visibilitychange', listener)
+
+    // Also update on focus/blur (window switch)
+    const handleFocus = () => {
+      isPageVisibleRef.current = true
+    }
+    const handleBlur = () => {
+      isPageVisibleRef.current = false
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('blur', handleBlur)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('blur', handleBlur)
+    }
   }, [])
 
   useEffect(() => {
-    if (snapshot?.isMyTurn && !isFocusedRef.current) {
+    if (snapshot?.isMyTurn && !isPageVisibleRef.current) {
       const audio = new Audio('/audio/yourturn.ogg')
 
       audio.play().catch((error) => {

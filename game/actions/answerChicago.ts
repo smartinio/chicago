@@ -33,6 +33,10 @@ export const answerChicago = publicProcedure
 
     const outcome = (() => {
       if (input.takeChicago) {
+        // Validate that player is eligible to call Chicago
+        if (!game.rules.chicagoCanBeCalledBeforeFifteen && player.score < 15) {
+          return Errors.FORBIDDEN
+        }
         mutate.setChicagoCaller({ game, player })
         mutate.addEvent({
           game,
@@ -50,10 +54,21 @@ export const answerChicago = publicProcedure
           return Results.ANSWERED_CHICAGO
         }
 
+        // Find next eligible player between current and dealer (going forward, not wrapping)
+        // Asking order is: playerAfterDealer -> ... -> dealer
+        // We only look at players we haven't asked yet (between current and dealer inclusive)
         const currentPlayerIndex = game.players.findIndex((p) => p.id === player.id)
-        const candidates = game.players
-          .slice(currentPlayerIndex + 1)
-          .concat(game.players.slice(0, currentPlayerIndex))
+        const dealerIndex = game.players.findIndex((p) => p.id === game.dealer.id)
+
+        // Build candidates: players from current+1 to dealer (wrapping if needed)
+        const candidates: typeof game.players = []
+        let idx = (currentPlayerIndex + 1) % game.players.length
+        while (idx !== dealerIndex) {
+          candidates.push(game.players[idx])
+          idx = (idx + 1) % game.players.length
+        }
+        // Include the dealer as the last candidate
+        candidates.push(game.players[dealerIndex])
 
         const nextPlayer = candidates.find((p) => p.score >= 15)
 

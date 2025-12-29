@@ -21,21 +21,23 @@ const setCards = (player: { cards: Set<Card> }, ...ids: (keyof typeof CARDS_BY_I
 describe('getPointsForHand', () => {
   const game = stubGame()
 
-  describe('No hand (high card only)', () => {
-    it('returns null handType and 0 points for high card only', () => {
+  describe('High card (no poker hand)', () => {
+    it('returns highCard handType and 0 points for high card only', () => {
       const result = getPointsForHand(
         game,
         hand('clubs:2', 'hearts:5', 'spades:8', 'diamonds:10', 'clubs:13')
       )
-      expect(result).toEqual({ handType: null, points: 0 })
+      expect(result).toMatchObject({ handType: 'highCard', points: 0 })
+      expect(result.cards).toHaveLength(1) // Just the highest card
     })
 
-    it('returns 0 points for non-consecutive, non-matching cards', () => {
+    it('returns highCard for non-consecutive, non-matching cards', () => {
       const result = getPointsForHand(
         game,
         hand('clubs:3', 'hearts:6', 'spades:9', 'diamonds:12', 'clubs:14')
       )
-      expect(result).toEqual({ handType: null, points: 0 })
+      expect(result).toMatchObject({ handType: 'highCard', points: 0 })
+      expect(result.cards?.[0].value).toBe(14) // Ace is highest
     })
   })
 
@@ -526,11 +528,20 @@ describe('getPlayersWithBestHand', () => {
 })
 
 describe('tieBreak', () => {
+  // Helper to create a BestHand candidate with fullHand from player's cards
+  const createCandidate = (player: ReturnType<typeof stubPlayer>) => ({
+    player,
+    handType: 'pair' as const,
+    points: 1,
+    cards: Array.from(player.cards),
+    fullHand: Array.from(player.cards),
+  })
+
   it('returns single candidate when no tie', () => {
     const player = stubPlayer({ id: 'p1' })
     setCards(player, 'clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9')
 
-    const candidates = [{ player, handType: 'pair' as const, points: 1 }]
+    const candidates = [createCandidate(player)]
     const result = tieBreak(candidates)
 
     expect(result).toHaveLength(1)
@@ -545,10 +556,7 @@ describe('tieBreak', () => {
     // P2 has King high
     setCards(p2, 'clubs:13', 'hearts:5', 'spades:6', 'diamonds:7', 'clubs:8')
 
-    const candidates = [
-      { player: p1, handType: 'pair' as const, points: 1 },
-      { player: p2, handType: 'pair' as const, points: 1 },
-    ]
+    const candidates = [createCandidate(p1), createCandidate(p2)]
     const result = tieBreak(candidates)
 
     expect(result).toHaveLength(1)
@@ -564,10 +572,7 @@ describe('tieBreak', () => {
     // P2 has Queen as second
     setCards(p2, 'spades:14', 'hearts:12', 'diamonds:6', 'clubs:7', 'hearts:8')
 
-    const candidates = [
-      { player: p1, handType: 'pair' as const, points: 1 },
-      { player: p2, handType: 'pair' as const, points: 1 },
-    ]
+    const candidates = [createCandidate(p1), createCandidate(p2)]
     const result = tieBreak(candidates)
 
     expect(result).toHaveLength(1)
@@ -582,10 +587,7 @@ describe('tieBreak', () => {
     setCards(p1, 'clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:10')
     setCards(p2, 'spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:10')
 
-    const candidates = [
-      { player: p1, handType: 'pair' as const, points: 1 },
-      { player: p2, handType: 'pair' as const, points: 1 },
-    ]
+    const candidates = [createCandidate(p1), createCandidate(p2)]
     const result = tieBreak(candidates)
 
     expect(result).toHaveLength(2)

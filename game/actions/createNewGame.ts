@@ -49,6 +49,7 @@ export const createNewGame = publicProcedure
       chicagoCanBeCalledBeforeFifteen: true,
       oneOpenMode: 'last' as const,
       handPoints: {
+        highCard: 0,
         pair: 1,
         twoPair: 2,
         threeOfAKind: 3,

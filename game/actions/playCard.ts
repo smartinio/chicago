@@ -75,7 +75,9 @@ export const playCard = publicProcedure
       const { chicagoCaller } = game.round
       const { winning } = decideWinningPlayedCard({ round: game.round })
 
-      if (chicagoCaller) {
+      // If makeItRain occurred, we already know the player wins all tricks
+      // Skip the "lost a trick" check and go directly to best-hand evaluation
+      if (chicagoCaller && !makesItRain) {
         if (winning.player.id !== chicagoCaller.id) {
           mutate.givePoints({ player: chicagoCaller, points: -15 })
           mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_chicago' } })
@@ -88,13 +90,16 @@ export const playCard = publicProcedure
       const trickIsOver = trick.playedCards.length === game.players.length
       const isLastTrick = game.round.tricks.length === 5
 
+      // If makeItRain, the player who made it rain wins all remaining tricks
+      const actualWinner = makesItRain ? player : winning.player
+
       let nextTricker = getPlayerNextTo(player, game)
 
       if (trickIsOver) {
         if (!makesItRain) {
           mutate.addEvent({ game, event: { actor: winning.player, action: 'won_trick' } })
         }
-        nextTricker = winning.player
+        nextTricker = actualWinner
 
         if (isLastTrick) {
           if (chicagoCaller) {
@@ -132,11 +137,15 @@ export const playCard = publicProcedure
               })
             }
           } else {
+            // For last trick points, use the actual winning card (not affected by makeItRain)
+            const lastTrickWinningCard = winning.card
             const points =
-              winning.card.value === 2 ? game.rules.pointsForWinWithTwo : game.rules.pointsForWin
+              lastTrickWinningCard.value === 2
+                ? game.rules.pointsForWinWithTwo
+                : game.rules.pointsForWin
 
-            mutate.givePoints({ player: winning.player, points })
-            mutate.addEvent({ game, event: { actor: winning.player, action: 'won_round', points } })
+            mutate.givePoints({ player: actualWinner, points })
+            mutate.addEvent({ game, event: { actor: actualWinner, action: 'won_round', points } })
 
             const bestHandPlayers = getPlayersWithBestHand(game)
 
@@ -154,7 +163,7 @@ export const playCard = publicProcedure
               })
             }
           }
-          mutate.endRound({ game, roundWinner: winning.player })
+          mutate.endRound({ game, roundWinner: actualWinner })
           return Results.ROUND_OVER
         }
 

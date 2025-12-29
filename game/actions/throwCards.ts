@@ -86,12 +86,26 @@ export const throwCards = publicProcedure
 
 export const moveToNextPhase = (params: { game: Game }) => {
   const { game } = params
-  mutate.setCurrentPlayer({ game, player: getPlayerNextTo(game.dealer, game) })
+  const playerAfterDealer = getPlayerNextTo(game.dealer, game)
 
-  if (game.rules.chicagoCanBeCalledBeforeFifteen || game.players.some((p) => p.score >= 15)) {
+  if (game.rules.chicagoCanBeCalledBeforeFifteen) {
+    mutate.setCurrentPlayer({ game, player: playerAfterDealer })
     mutate.setRoundPhase({ game, phase: 'asking_chicago' })
   } else {
-    mutate.setRoundPhase({ game, phase: 'tricking' })
+    // Find first eligible player (score >= 15) starting from player after dealer
+    const dealerIndex = game.players.findIndex((p) => p.id === game.dealer.id)
+    const orderedPlayers = game.players
+      .slice(dealerIndex + 1)
+      .concat(game.players.slice(0, dealerIndex + 1))
+    const firstEligible = orderedPlayers.find((p) => p.score >= 15)
+
+    if (firstEligible) {
+      mutate.setCurrentPlayer({ game, player: firstEligible })
+      mutate.setRoundPhase({ game, phase: 'asking_chicago' })
+    } else {
+      mutate.setCurrentPlayer({ game, player: playerAfterDealer })
+      mutate.setRoundPhase({ game, phase: 'tricking' })
+    }
   }
 }
 

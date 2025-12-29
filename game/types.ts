@@ -94,6 +94,7 @@ export type GameRules = {
   chicagoCanBeCalledBeforeFifteen: boolean
   oneOpenMode: 'all' | 'last'
   handPoints: {
+    highCard: number
     pair: number
     twoPair: number
     threeOfAKind: number

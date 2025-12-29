@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { MIN_PLAYER_COUNT } from '#game/constants'
 import { mutate } from '#game/mutations'
 import { getGameAsDealer } from '#game/store'
-import { Errors, isError, Results, RoundPhase } from '#game/types'
+import { Errors, isError, Player, Results, RoundPhase } from '#game/types'
 import { createRound, getPlayerNextTo } from '#game/utils'
 import { publicProcedure } from '#server/trpc'
 import { updateClients } from '#game/emitter'
@@ -46,24 +46,35 @@ export const startNewRound = publicProcedure
       })
 
       let phase: RoundPhase
+      let nextPlayer: Player
 
       if (throwEligiblePlayer) {
         phase = 'throwing'
-      } else if (
-        game.rules.chicagoCanBeCalledBeforeFifteen ||
-        game.players.some((p) => p.score >= 15)
-      ) {
+        nextPlayer = throwEligiblePlayer
+      } else if (game.rules.chicagoCanBeCalledBeforeFifteen) {
         phase = 'asking_chicago'
+        nextPlayer = getPlayerNextTo(dealer, game)
       } else {
-        phase = 'tricking'
+        // Find first eligible player (score >= 15) starting from player after dealer
+        const dealerIndex = game.players.findIndex((p) => p.id === dealer.id)
+        const orderedPlayers = game.players
+          .slice(dealerIndex + 1)
+          .concat(game.players.slice(0, dealerIndex + 1))
+        const firstEligible = orderedPlayers.find((p) => p.score >= 15)
+
+        if (firstEligible) {
+          phase = 'asking_chicago'
+          nextPlayer = firstEligible
+        } else {
+          phase = 'tricking'
+          nextPlayer = getPlayerNextTo(dealer, game)
+        }
       }
 
       const newRound = createRound({
         phase,
         throwCycles: [game.players.map(() => false)],
       })
-
-      const nextPlayer = throwEligiblePlayer || getPlayerNextTo(dealer, game)
 
       mutate.newRound({ game, round: newRound })
       mutate.setCurrentPlayer({ game, player: nextPlayer })

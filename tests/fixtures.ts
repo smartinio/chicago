@@ -59,6 +59,7 @@ export const stubGame = (params: { numPlayers?: number; overrides?: Partial<Game
       chicagoCanBeCalledBeforeFifteen: true,
       oneOpenMode: 'last',
       handPoints: {
+        highCard: 0,
         pair: 1,
         twoPair: 2,
         threeOfAKind: 3,
