@@ -1,16 +1,30 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { ChakraProvider, Container, Flex, LightMode } from '@chakra-ui/react'
+import { ChakraProvider } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createTRPCReact, httpBatchLink } from '@trpc/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, PlayerSnapshot, Snapshot } from '../shared/types'
-import { Players } from '../views/Players'
-import { MiddleAreaContent } from '../views/MiddleAreaContent'
+import { Game } from '../views/Game'
 import { setSnapshot } from '../store'
+// Import the same mock trpc that Game.tsx will use in Storybook
+import { trpc } from '../.storybook/trpc-mock'
+import { observable } from '@trpc/server/observable'
 import type { AppRouter } from '../server/routers/_app'
+import type { TRPCLink } from '@trpc/client'
 
-// Create a mock tRPC instance for stories
-const mockTrpc = createTRPCReact<AppRouter>()
+// A no-op link that does nothing - for Storybook where we don't need real tRPC
+const noopLink: TRPCLink<AppRouter> = () => {
+  return ({ op }) => {
+    return observable((observer) => {
+      // For subscriptions, just don't emit anything
+      // For queries/mutations, immediately complete with undefined
+      if (op.type !== 'subscription') {
+        observer.next({ result: { data: undefined } })
+        observer.complete()
+      }
+      return () => {}
+    })
+  }
+}
 
 // Sample cards
 const sampleCards: Record<string, Card> = {
@@ -102,79 +116,60 @@ const createBaseSnapshot = (overrides: Partial<Snapshot> = {}): Snapshot => ({
   ...overrides,
 })
 
-// Mock tRPC provider wrapper
-const MockTrpcProvider = ({ children }: { children: React.ReactNode }) => {
+// tRPC Provider for Storybook - provides the context Game.tsx needs
+const TrpcProvider = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { retry: false },
+          queries: { retry: false, refetchOnWindowFocus: false, enabled: false },
           mutations: { retry: false },
         },
       })
   )
   const [trpcClient] = useState(() =>
-    mockTrpc.createClient({
-      links: [
-        httpBatchLink({
-          url: 'http://localhost:3000/api/trpc',
-        }),
-      ],
+    trpc.createClient({
+      links: [noopLink],
     })
   )
 
   return (
-    <mockTrpc.Provider client={trpcClient} queryClient={queryClient}>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </mockTrpc.Provider>
+    </trpc.Provider>
   )
 }
 
-// Wrapper component that sets up the snapshot in zustand store
-const GameLayoutWrapper = ({ snapshot }: { snapshot: Snapshot }) => {
-  setSnapshot(snapshot)
+// Wrapper that pre-populates the zustand store and renders Game
+const GameWrapper = ({ snapshot }: { snapshot: Snapshot }) => {
+  const [ready, setReady] = useState(false)
 
-  const dealer = snapshot.players.find((p) => p.id === snapshot.dealerId)
-  const currentPlayer = snapshot.players.find((p) => p.id === snapshot.currentPlayerId)
+  useEffect(() => {
+    setSnapshot(snapshot)
+    setReady(true)
+  }, [snapshot])
+
+  if (!ready) return null
 
   return (
-    <LightMode>
-      <Flex
-        bgGradient="linear(to-b, gray.200, gray.300)"
-        minH="100vh"
-        width="100%"
-        color="gray.800"
-      >
-        <Container marginTop="20">
-          <Players>
-            <MiddleAreaContent
-              gamePhase={snapshot.gamePhase}
-              roundPhase={snapshot.roundPhase}
-              isMyTurn={snapshot.isMyTurn}
-              canStart={snapshot.canStart}
-              dealerName={dealer?.name}
-              currentPlayerName={currentPlayer?.name}
-              fourOfAKindCards={[]}
-              fourOfAKindPoints={snapshot.rules.handPoints.fourOfAKind}
-              playerCount={snapshot.players.length}
-            />
-          </Players>
-        </Container>
-      </Flex>
-    </LightMode>
+    <Game
+      gameId={snapshot.gameId}
+      playerId={snapshot.playerId}
+      playerSecret={snapshot.playerSecret}
+    />
   )
 }
 
-const meta: Meta<typeof GameLayoutWrapper> = {
-  title: 'Game/GameLayout',
-  component: GameLayoutWrapper,
+const meta: Meta<typeof GameWrapper> = {
+  title: 'Game/Game',
+  component: GameWrapper,
   decorators: [
     (Story) => (
-      <MockTrpcProvider>
+      <TrpcProvider>
         <ChakraProvider>
           <Story />
         </ChakraProvider>
-      </MockTrpcProvider>
+      </TrpcProvider>
     ),
   ],
   parameters: {
@@ -184,190 +179,118 @@ const meta: Meta<typeof GameLayoutWrapper> = {
 }
 
 export default meta
-type Story = StoryObj<typeof GameLayoutWrapper>
+type Story = StoryObj<typeof GameWrapper>
 
-// ==================== TRICKING PHASE STORIES ====================
+// ==================== GAME STORIES ====================
 
-export const TrickingFirstCard: Story = {
-  name: 'Tricking - First Card Played',
+export const Throwing: Story = {
+  name: 'Throwing Phase',
   args: {
     snapshot: createBaseSnapshot({
-      roundPhase: 'tricking',
-      trickCount: 1,
-      startingCard: sampleCards.aceSpades,
-      players: [
-        createPlayer('player-1', 'You', 12, [sampleCards.aceSpades]),
-        createPlayer('player-2', 'Alice', 8, []),
-        createPlayer('player-3', 'Bob', 15, []),
-        createPlayer('player-4', 'Charlie', 5, []),
-      ],
-      currentPlayerId: 'player-2',
-      isMyTurn: false,
-    }),
-  },
-}
-
-export const TrickingMultipleCardsPlayed: Story = {
-  name: 'Tricking - Multiple Cards Played (Stacked)',
-  args: {
-    snapshot: createBaseSnapshot({
-      roundPhase: 'tricking',
-      trickCount: 3,
-      startingCard: sampleCards.tenSpades,
-      players: [
-        createPlayer('player-1', 'You', 12, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.tenSpades,
-        ]),
-        createPlayer('player-2', 'Alice', 8, [
-          sampleCards.queenDiamonds,
-          sampleCards.nineHearts,
-          sampleCards.sevenClubs,
-        ]),
-        createPlayer('player-3', 'Bob', 15, [
-          sampleCards.jackClubs,
-          sampleCards.eightDiamonds,
-          sampleCards.sixSpades,
-        ]),
-        createPlayer('player-4', 'Charlie', 5, [
-          sampleCards.fiveHearts,
-          sampleCards.fourDiamonds,
-          sampleCards.threeClubs,
-        ]),
-      ],
-      currentPlayerId: 'player-1',
+      roundPhase: 'throwing',
       isMyTurn: true,
-    }),
-  },
-}
-
-export const TrickingAllFiveCards: Story = {
-  name: 'Tricking - All 5 Cards Played',
-  args: {
-    snapshot: createBaseSnapshot({
-      roundPhase: 'tricking',
-      trickCount: 5,
-      startingCard: sampleCards.twoSpades,
-      players: [
-        createPlayer('player-1', 'You', 12, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.tenSpades,
-          sampleCards.sixSpades,
-          sampleCards.twoSpades,
-        ]),
-        createPlayer('player-2', 'Alice', 8, [
-          sampleCards.queenDiamonds,
-          sampleCards.nineHearts,
-          sampleCards.sevenClubs,
-          sampleCards.fiveHearts,
-          sampleCards.twoHearts,
-        ]),
-        createPlayer('player-3', 'Bob', 15, [
-          sampleCards.jackClubs,
-          sampleCards.eightDiamonds,
-          sampleCards.fourDiamonds,
-          sampleCards.threeClubs,
-          sampleCards.twoDiamonds,
-        ]),
-        createPlayer('player-4', 'Charlie', 5, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.queenDiamonds,
-          sampleCards.jackClubs,
-          sampleCards.twoClubs,
-        ]),
+      oneOpenAvailable: true,
+      events: [
+        { id: '1', action: 'started_round', actorId: 'server', data: {} },
+        { id: '2', action: 'throw_cycle_started', actorId: 'server', data: { throwNumber: 1 } },
       ],
-      currentPlayerId: 'player-1',
-      isMyTurn: true,
     }),
   },
 }
 
-export const TrickingWithChicagoCaller: Story = {
-  name: 'Tricking - With Chicago Caller',
+export const Tricking: Story = {
+  name: 'Tricking Phase',
   args: {
     snapshot: createBaseSnapshot({
       roundPhase: 'tricking',
+      isMyTurn: true,
       trickCount: 2,
-      chicagoCallerId: 'player-2',
       startingCard: sampleCards.kingHearts,
       players: [
         createPlayer('player-1', 'You', 12, [sampleCards.aceSpades, sampleCards.kingHearts]),
-        createPlayer(
-          'player-2',
-          'Alice',
-          8,
-          [sampleCards.queenDiamonds, sampleCards.nineHearts],
-          true
-        ),
+        createPlayer('player-2', 'Alice', 8, [sampleCards.queenDiamonds, sampleCards.nineHearts]),
         createPlayer('player-3', 'Bob', 15, [sampleCards.jackClubs, sampleCards.eightDiamonds]),
         createPlayer('player-4', 'Charlie', 5, [sampleCards.fiveHearts, sampleCards.fourDiamonds]),
       ],
-      currentPlayerId: 'player-3',
-      isMyTurn: false,
-    }),
-  },
-}
-
-// ==================== TWO PLAYER GAME ====================
-
-export const TwoPlayerGame: Story = {
-  name: 'Two Player Game',
-  args: {
-    snapshot: createBaseSnapshot({
-      roundPhase: 'tricking',
-      trickCount: 3,
-      startingCard: sampleCards.tenSpades,
-      players: [
-        createPlayer('player-1', 'You', 25, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.tenSpades,
-        ]),
-        createPlayer('player-2', 'Opponent', 18, [
-          sampleCards.queenDiamonds,
-          sampleCards.nineHearts,
-          sampleCards.sevenClubs,
-        ]),
+      events: [
+        { id: '1', action: 'tricking_phase_started', actorId: 'server', data: {} },
+        { id: '2', action: 'won_trick', actorId: 'player-1', data: {} },
       ],
-      currentPlayerId: 'player-1',
-      isMyTurn: true,
     }),
   },
 }
 
-// ==================== THREE PLAYER GAME ====================
-
-export const ThreePlayerGame: Story = {
-  name: 'Three Player Game',
+export const ChicagoQuestion: Story = {
+  name: 'Chicago Question',
   args: {
     snapshot: createBaseSnapshot({
-      roundPhase: 'tricking',
-      trickCount: 2,
-      startingCard: sampleCards.kingHearts,
-      players: [
-        createPlayer('player-1', 'You', 20, [sampleCards.aceSpades, sampleCards.kingHearts]),
-        createPlayer('player-2', 'Alice', 15, [sampleCards.queenDiamonds, sampleCards.nineHearts]),
-        createPlayer('player-3', 'Bob', 22, [sampleCards.jackClubs, sampleCards.eightDiamonds]),
+      roundPhase: 'asking_chicago',
+      isMyTurn: true,
+      events: [
+        { id: '1', action: 'started_round', actorId: 'server', data: {} },
+        { id: '2', action: 'threw_cards', actorId: 'player-2', data: { count: 2 } },
+        { id: '3', action: 'threw_cards', actorId: 'player-3', data: { count: 0 } },
       ],
-      currentPlayerId: 'player-1',
-      isMyTurn: true,
     }),
   },
 }
 
-// ==================== ROUND END STATE ====================
-
-export const RoundOverDealCards: Story = {
-  name: 'Round Over - Deal Cards Button',
+export const OneOpenOffer: Story = {
+  name: 'One Open Offer',
   args: {
     snapshot: createBaseSnapshot({
-      gamePhase: 'round',
-      roundPhase: 'over',
+      roundPhase: 'asking_one_open',
+      isMyTurn: true,
+      openCard: sampleCards.aceSpades,
+      events: [
+        { id: '1', action: 'started_round', actorId: 'server', data: {} },
+        { id: '2', action: 'throw_cycle_started', actorId: 'server', data: { throwNumber: 3 } },
+      ],
+    }),
+  },
+}
+
+export const FourOfAKind: Story = {
+  name: 'Four of a Kind',
+  args: {
+    snapshot: createBaseSnapshot({
+      roundPhase: 'asking_four_of_a_kind',
+      isMyTurn: true,
       trickCount: 5,
+      players: [
+        createPlayer('player-1', 'You', 35, [
+          sampleCards.twoSpades,
+          sampleCards.twoHearts,
+          sampleCards.twoDiamonds,
+          sampleCards.twoClubs,
+          sampleCards.aceSpades,
+        ]),
+        createPlayer('player-2', 'Alice', 28, [
+          sampleCards.kingHearts,
+          sampleCards.queenDiamonds,
+          sampleCards.jackClubs,
+          sampleCards.tenSpades,
+          sampleCards.nineHearts,
+        ]),
+        createPlayer('player-3', 'Bob', 42, []),
+        createPlayer('player-4', 'Charlie', 15, []),
+      ],
+      events: [
+        { id: '1', action: 'tricking_phase_started', actorId: 'server', data: {} },
+        { id: '2', action: 'won_trick', actorId: 'player-1', data: {} },
+      ],
+    }),
+  },
+}
+
+export const RoundOver: Story = {
+  name: 'Round Over - Deal Cards',
+  args: {
+    snapshot: createBaseSnapshot({
+      roundPhase: 'over',
       canStart: true,
+      trickCount: 5,
+      myCards: [],
       players: [
         createPlayer('player-1', 'You', 17, [
           sampleCards.aceSpades,
@@ -376,76 +299,42 @@ export const RoundOverDealCards: Story = {
           sampleCards.sixSpades,
           sampleCards.twoSpades,
         ]),
-        createPlayer('player-2', 'Alice', 13, [
-          sampleCards.queenDiamonds,
-          sampleCards.nineHearts,
-          sampleCards.sevenClubs,
-          sampleCards.fiveHearts,
-          sampleCards.twoHearts,
-        ]),
-        createPlayer('player-3', 'Bob', 20, [
-          sampleCards.jackClubs,
-          sampleCards.eightDiamonds,
-          sampleCards.fourDiamonds,
-          sampleCards.threeClubs,
-          sampleCards.twoDiamonds,
-        ]),
-        createPlayer('player-4', 'Charlie', 10, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.queenDiamonds,
-          sampleCards.jackClubs,
-          sampleCards.twoClubs,
-        ]),
+        createPlayer('player-2', 'Alice', 13, []),
+        createPlayer('player-3', 'Bob', 20, []),
+        createPlayer('player-4', 'Charlie', 10, []),
       ],
-      currentPlayerId: 'player-1',
-      isMyTurn: true,
+      events: [{ id: '1', action: 'won_round', actorId: 'player-1', data: { points: 5 } }],
     }),
   },
 }
 
-// ==================== GAME END STATE ====================
+export const TwoPlayers: Story = {
+  name: 'Two Player Game',
+  args: {
+    snapshot: createBaseSnapshot({
+      roundPhase: 'tricking',
+      trickCount: 2,
+      players: [
+        createPlayer('player-1', 'You', 25, [sampleCards.aceSpades]),
+        createPlayer('player-2', 'Opponent', 18, [sampleCards.queenDiamonds]),
+      ],
+    }),
+  },
+}
 
 export const GameOver: Story = {
-  name: 'Game Over - Winner',
+  name: 'Game Over',
   args: {
     snapshot: createBaseSnapshot({
       gamePhase: 'over',
       roundPhase: 'over',
-      trickCount: 5,
-      players: [
-        createPlayer('player-1', 'You', 52, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.tenSpades,
-          sampleCards.sixSpades,
-          sampleCards.twoSpades,
-        ]),
-        createPlayer('player-2', 'Alice', 38, [
-          sampleCards.queenDiamonds,
-          sampleCards.nineHearts,
-          sampleCards.sevenClubs,
-          sampleCards.fiveHearts,
-          sampleCards.twoHearts,
-        ]),
-        createPlayer('player-3', 'Bob', 45, [
-          sampleCards.jackClubs,
-          sampleCards.eightDiamonds,
-          sampleCards.fourDiamonds,
-          sampleCards.threeClubs,
-          sampleCards.twoDiamonds,
-        ]),
-        createPlayer('player-4', 'Charlie', 29, [
-          sampleCards.aceSpades,
-          sampleCards.kingHearts,
-          sampleCards.queenDiamonds,
-          sampleCards.jackClubs,
-          sampleCards.twoClubs,
-        ]),
-      ],
-      currentPlayerId: 'player-1',
-      isMyTurn: false,
       canStart: true,
+      players: [
+        createPlayer('player-1', 'You', 52, []),
+        createPlayer('player-2', 'Alice', 38, []),
+        createPlayer('player-3', 'Bob', 45, []),
+        createPlayer('player-4', 'Charlie', 29, []),
+      ],
     }),
   },
 }

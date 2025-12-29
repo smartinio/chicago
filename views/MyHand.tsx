@@ -1,4 +1,4 @@
-import { Box, Button, Flex, HStack, SlideFade, Tag } from '@chakra-ui/react'
+import { Box, Flex, SlideFade } from '@chakra-ui/react'
 import {
   DndContext,
   DragEndEvent,
@@ -19,16 +19,19 @@ import { sortBySuitAndValue } from '#utils/sort'
 import { trpc } from '#utils/trpc'
 import { PlayingCard } from '#views/PlayingCard'
 
-export const MyHand = () => {
+interface MyHandProps {
+  selectedCards: Card[]
+  setSelectedCards: (cards: Card[] | ((cards: Card[]) => Card[])) => void
+}
+
+export const MyHand = ({ selectedCards, setSelectedCards }: MyHandProps) => {
   const { snapshot } = useSnapshot()
-  const [selectedCards, setSelectedCards] = useState<Card[]>([])
   const [pendingDropCard, setPendingDropCard] = useState<Card>()
   const [minHeight, setMinHeight] = useState(0)
   const [shouldFadeIn, setShouldFadeIn] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   const mutationOptions = { onSuccess: dataHandler(() => {}, handleError) }
-  const throwCardsMutation = trpc.throwCards.useMutation(mutationOptions)
   const playCardMutation = trpc.playCard.useMutation(mutationOptions)
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 1 } })
@@ -42,7 +45,7 @@ export const MyHand = () => {
       case 'over':
         setSelectedCards([])
     }
-  }, [snapshot?.roundPhase])
+  }, [snapshot?.roundPhase, setSelectedCards])
 
   useEffect(() => {
     const clientHeight = ref.current?.clientHeight || 0
@@ -93,36 +96,6 @@ export const MyHand = () => {
     }
   }
 
-  const getPlayButtonStyle = () => {
-    const opacity = (() => {
-      if (!snapshot?.isMyTurn) {
-        return 0
-      }
-
-      if (selectedCards.length > 0) {
-        return 1
-      }
-
-      return 0
-    })()
-
-    return {
-      transition: 'all 0.2s ease',
-      opacity,
-      boxShadow: '0px 5px 15px rgba(0,0,0,0.2)',
-      transform: 'translateY(-60px)',
-    } as const
-  }
-
-  const getThrowButtonStyle = () => {
-    return {
-      transition: 'all 0.2s ease',
-      opacity: snapshot?.isMyTurn ? 1 : 0,
-      boxShadow: '0px 5px 15px rgba(0,0,0,0.2)',
-      transform: 'translateY(-60px)',
-    } as const
-  }
-
   const handleCardClick = (card: Card) => {
     setSelectedCards((cards) => {
       if (snapshot.roundPhase === 'tricking') {
@@ -143,32 +116,9 @@ export const MyHand = () => {
     })
   }
 
-  useEffect(() => {
-    console.log(snapshot)
-  }, [snapshot])
-
-  const playCard = (card = selectedCards[0]) => {
-    if (card) {
-      playCardMutation.mutate({ gameId, playerSecret, card })
-    }
+  const playCard = (card: Card) => {
+    playCardMutation.mutate({ gameId, playerSecret, card })
     setSelectedCards([])
-  }
-
-  const throwCards = ({ oneOpen = false }: { oneOpen?: boolean }) => {
-    throwCardsMutation.mutate({ gameId, playerSecret, cards: selectedCards, oneOpen })
-    setSelectedCards([])
-  }
-
-  const handlePlayPress = () => {
-    playCard()
-  }
-
-  const handleThrowPress = () => {
-    throwCards({ oneOpen: false })
-  }
-
-  const handleOneOpenPress = () => {
-    throwCards({ oneOpen: true })
   }
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -186,7 +136,7 @@ export const MyHand = () => {
     }
   }
 
-  const { isMyTurn, myCards, roundPhase, gamePhase, oneOpenAvailable } = snapshot
+  const { isMyTurn, myCards, roundPhase, gamePhase } = snapshot
   const sortedCards = sortBySuitAndValue(myCards)
   const canPlay = isMyTurn && ['tricking', 'throwing'].includes(roundPhase)
 
@@ -211,57 +161,6 @@ export const MyHand = () => {
         >
           <SlideFade in={shouldFadeIn} offsetY="120px">
             <Box paddingX="4">
-              <Box paddingBottom="4" textAlign="center" opacity={gamePhase === 'round' ? 1 : 0}>
-                {isMyTurn &&
-                  (() => {
-                    switch (roundPhase) {
-                      case 'throwing':
-                        return (
-                          <HStack spacing="2" justifyContent="center">
-                            <Button
-                              style={getThrowButtonStyle()}
-                              onClick={handleThrowPress}
-                              variant="solid"
-                              colorScheme={selectedCards.length > 0 ? 'green' : 'blue'}
-                              borderRadius="3xl"
-                              isDisabled={!canPlay}
-                            >
-                              {selectedCards.length > 0 ? `Swap ${selectedCards.length}` : 'Pass'}
-                            </Button>
-                            {oneOpenAvailable && selectedCards.length === 1 && (
-                              <Button
-                                style={getThrowButtonStyle()}
-                                onClick={handleOneOpenPress}
-                                variant="solid"
-                                colorScheme={'blue'}
-                                borderRadius="3xl"
-                                isDisabled={!canPlay}
-                              >
-                                1 Open
-                              </Button>
-                            )}
-                          </HStack>
-                        )
-                      case 'tricking':
-                        return (
-                          <Button
-                            style={getPlayButtonStyle()}
-                            onClick={handlePlayPress}
-                            variant="solid"
-                            colorScheme="green"
-                            borderRadius="3xl"
-                            isDisabled={!canPlay}
-                          >
-                            Play
-                          </Button>
-                        )
-                      // asking_chicago, asking_four_of_a_kind, and asking_one_open
-                      // are now handled in MiddleArea component
-                      default:
-                        return null
-                    }
-                  })()}
-              </Box>
               <Flex justifyContent="center" opacity={canPlay ? 1 : 0.15} marginBottom="-110px">
                 {sortedCards.map((card, idx) => (
                   <Box

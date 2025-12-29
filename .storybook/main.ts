@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/nextjs-vite';
+import path from 'path';
 
 const config: StorybookConfig = {
   "stories": [
@@ -15,6 +16,19 @@ const config: StorybookConfig = {
   "framework": "@storybook/nextjs-vite",
   "staticDirs": [
     "../public"
-  ]
+  ],
+  async viteFinal(config) {
+    return {
+      ...config,
+      resolve: {
+        ...config.resolve,
+        alias: {
+          ...config.resolve?.alias,
+          // Replace trpc with mock for Storybook
+          '#utils/trpc': path.resolve(__dirname, './trpc-mock.ts'),
+        },
+      },
+    };
+  },
 };
 export default config;

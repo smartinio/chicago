@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/nextjs-vite'
+import { INITIAL_VIEWPORTS } from 'storybook/viewport'
 
 const preview: Preview = {
   parameters: {
@@ -14,6 +15,10 @@ const preview: Preview = {
       // 'error' - fail CI on a11y violations
       // 'off' - skip a11y checks entirely
       test: 'todo',
+    },
+
+    viewport: {
+      options: INITIAL_VIEWPORTS,
     },
   },
 }

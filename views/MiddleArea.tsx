@@ -1,17 +1,9 @@
 import { usePlayerGame, useSnapshot } from '#store'
-import { defaultDataHandler } from '#utils/data'
-import { trpc } from '#utils/trpc'
 import { Card } from '#shared/types'
 import { MiddleAreaContent } from './MiddleAreaContent'
 
 export const MiddleArea = () => {
   const { snapshot } = useSnapshot()
-  const { gameId, playerSecret } = usePlayerGame()
-  const mutationOptions = { onSuccess: defaultDataHandler }
-  const startNewRoundMutation = trpc.startNewRound.useMutation(mutationOptions)
-  const answerChicagoMutation = trpc.answerChicago.useMutation(mutationOptions)
-  const answerOneOpenMutation = trpc.answerOneOpen.useMutation(mutationOptions)
-  const answerFourOfAKindMutation = trpc.answerFourOfAKind.useMutation(mutationOptions)
 
   if (!snapshot) {
     return null
@@ -26,7 +18,6 @@ export const MiddleArea = () => {
     currentPlayerId,
     isMyTurn,
     players,
-    rules,
   } = snapshot
 
   const dealer = players.find((p) => p.id === dealerId)
@@ -61,27 +52,7 @@ export const MiddleArea = () => {
       currentPlayerName={currentPlayer?.name}
       openCard={openCard}
       fourOfAKindCards={getFourOfAKindCards()}
-      fourOfAKindPoints={rules.handPoints.fourOfAKind}
       playerCount={players.length}
-      onStartNewRound={() => startNewRoundMutation.mutate({ gameId, dealerSecret: playerSecret })}
-      onAcceptChicago={() =>
-        answerChicagoMutation.mutate({ gameId, playerSecret, takeChicago: true })
-      }
-      onRejectChicago={() =>
-        answerChicagoMutation.mutate({ gameId, playerSecret, takeChicago: false })
-      }
-      onAcceptOneOpen={() =>
-        answerOneOpenMutation.mutate({ gameId, playerSecret, acceptOpen: true })
-      }
-      onRejectOneOpen={() =>
-        answerOneOpenMutation.mutate({ gameId, playerSecret, acceptOpen: false })
-      }
-      onFourOfAKindPoints={() =>
-        answerFourOfAKindMutation.mutate({ gameId, playerSecret, answer: 'points' })
-      }
-      onFourOfAKindZeroOthers={() =>
-        answerFourOfAKindMutation.mutate({ gameId, playerSecret, answer: 'reset_others' })
-      }
     />
   )
 }

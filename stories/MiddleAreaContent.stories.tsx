@@ -43,21 +43,6 @@ type Story = StoryObj<typeof MiddleAreaContent>
 
 // ==================== CHICAGO STORIES ====================
 
-export const ChicagoMyTurn: Story = {
-  name: 'Chicago - My Turn',
-  args: {
-    gamePhase: 'round',
-    roundPhase: 'asking_chicago',
-    isMyTurn: true,
-    canStart: false,
-    currentPlayerName: 'Me',
-    dealerName: 'Alice',
-    fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
-    playerCount: 3,
-  },
-}
-
 export const ChicagoObserver: Story = {
   name: 'Chicago - Observing',
   args: {
@@ -68,28 +53,11 @@ export const ChicagoObserver: Story = {
     currentPlayerName: 'Harvey S',
     dealerName: 'Alice',
     fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
     playerCount: 3,
   },
 }
 
 // ==================== ONE OPEN STORIES ====================
-
-export const OneOpenMyTurn: Story = {
-  name: 'One Open - My Turn',
-  args: {
-    gamePhase: 'round',
-    roundPhase: 'asking_one_open',
-    isMyTurn: true,
-    canStart: false,
-    currentPlayerName: 'Me',
-    dealerName: 'Alice',
-    openCard: aceOfSpades,
-    fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
-    playerCount: 3,
-  },
-}
 
 export const OneOpenObserver: Story = {
   name: 'One Open - Observing',
@@ -102,27 +70,11 @@ export const OneOpenObserver: Story = {
     dealerName: 'Alice',
     openCard: kingOfHearts,
     fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
     playerCount: 3,
   },
 }
 
 // ==================== FOUR OF A KIND STORIES ====================
-
-export const FourOfAKindMyTurn: Story = {
-  name: 'Four of a Kind - My Turn',
-  args: {
-    gamePhase: 'round',
-    roundPhase: 'asking_four_of_a_kind',
-    isMyTurn: true,
-    canStart: false,
-    currentPlayerName: 'Me',
-    dealerName: 'Alice',
-    fourOfAKindCards: fourTwos,
-    fourOfAKindPoints: 7,
-    playerCount: 3,
-  },
-}
 
 export const FourOfAKindObserver: Story = {
   name: 'Four of a Kind - Observing',
@@ -133,41 +85,12 @@ export const FourOfAKindObserver: Story = {
     canStart: false,
     currentPlayerName: 'Harvey S',
     dealerName: 'Alice',
-    fourOfAKindCards: [], // Cards not shown to observers
-    fourOfAKindPoints: 7,
+    fourOfAKindCards: fourTwos,
     playerCount: 3,
   },
 }
 
-// ==================== GAME START STORIES ====================
-
-export const StartGameButton: Story = {
-  name: 'Start Game Button',
-  args: {
-    gamePhase: 'new',
-    roundPhase: 'over', // Use 'over' as a placeholder for new games
-    isMyTurn: false,
-    canStart: true,
-    dealerName: 'Alice',
-    fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
-    playerCount: 3,
-  },
-}
-
-export const DealCardsButton: Story = {
-  name: 'Deal Cards Button',
-  args: {
-    gamePhase: 'round',
-    roundPhase: 'over',
-    isMyTurn: false,
-    canStart: true,
-    dealerName: 'Alice',
-    fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
-    playerCount: 3,
-  },
-}
+// ==================== WAITING STATES ====================
 
 export const WaitingForPlayers: Story = {
   name: 'Waiting for Players',
@@ -178,7 +101,6 @@ export const WaitingForPlayers: Story = {
     canStart: false,
     dealerName: 'Alice',
     fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
     playerCount: 1,
   },
 }
@@ -192,7 +114,21 @@ export const WaitingForDealer: Story = {
     canStart: false,
     dealerName: 'Alice',
     fourOfAKindCards: [],
-    fourOfAKindPoints: 7,
+    playerCount: 3,
+  },
+}
+
+// ==================== EVENT LOG ====================
+
+export const EventLogView: Story = {
+  name: 'Event Log (Default)',
+  args: {
+    gamePhase: 'round',
+    roundPhase: 'tricking',
+    isMyTurn: false,
+    canStart: false,
+    dealerName: 'Alice',
+    fourOfAKindCards: [],
     playerCount: 3,
   },
 }

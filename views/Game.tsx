@@ -1,18 +1,21 @@
 import { Box, Code, Container, Flex, LightMode, Spinner, Text } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { trpc } from '#utils/trpc'
-import { Errors, Snapshot, isError } from '#shared/types'
+import { Card, Errors, Snapshot, isError } from '#shared/types'
 import { dataHandler } from '#utils/data'
 import { Start } from '#views/Start'
 import { useSnapshot, setSnapshot, useResults, setError, clearPlayerGame } from '#store'
 import { MyHand } from '#views/MyHand'
 import { TopControls } from '#views/TopControls'
 import { Players } from '#views/Players'
-import { EventLog } from '#views/EventLog'
 import { MiddleArea } from '#views/MiddleArea'
-import { memo, useEffect, useRef } from 'react'
+import { ActionButtons } from '#views/ActionButtons'
+import { memo, useEffect, useRef, useState } from 'react'
 import { cards } from '#utils/card'
 import Image from 'next/image'
+
+// Position of action buttons above the hand (in pixels from bottom)
+export const ACTION_BUTTONS_BOTTOM = '140px'
 
 interface Props {
   gameId: string
@@ -25,6 +28,7 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
   const { error } = useResults()
   const { snapshot } = useSnapshot()
   const keepAlive = useRef(false)
+  const [selectedCards, setSelectedCards] = useState<Card[]>([])
 
   // Start every render by assuming failure
   // Will set to true further down
@@ -163,6 +167,9 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
   // Only keep active games alive
   keepAlive.current = true
 
+  const { isMyTurn, roundPhase } = snapshot
+  const canPlay = isMyTurn && ['tricking', 'throwing'].includes(roundPhase)
+
   return (
     <LightMode>
       <Flex
@@ -178,8 +185,25 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
           <Players>
             <MiddleArea />
           </Players>
-          <MyHand />
         </Container>
+        {/* Action buttons positioned above the hand */}
+        <Box
+          position="fixed"
+          bottom={ACTION_BUTTONS_BOTTOM}
+          left={0}
+          right={0}
+          display="flex"
+          justifyContent="center"
+          zIndex={10}
+          paddingX="4"
+        >
+          <ActionButtons
+            selectedCards={selectedCards}
+            setSelectedCards={setSelectedCards}
+            canPlay={canPlay}
+          />
+        </Box>
+        <MyHand selectedCards={selectedCards} setSelectedCards={setSelectedCards} />
       </Flex>
     </LightMode>
   )
