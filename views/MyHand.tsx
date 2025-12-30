@@ -105,7 +105,7 @@ export const MyHand = ({ selectedCards, setSelectedCards }: MyHandProps) => {
         return [card]
       }
 
-      if (snapshot.roundPhase === 'throwing') {
+      if (!['killed', 'over'].includes(roundPhase)) {
         if (cards.some((c) => c.id === card.id)) {
           return cards.filter((c) => c.id !== card.id)
         }
