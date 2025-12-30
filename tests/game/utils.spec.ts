@@ -28,7 +28,7 @@ describe('getPointsForHand', () => {
         hand('clubs:2', 'hearts:5', 'spades:8', 'diamonds:10', 'clubs:13')
       )
       expect(result).toMatchObject({ handType: 'highCard', points: 0 })
-      expect(result.cards).toHaveLength(1) // Just the highest card
+      expect(result.cards).toHaveLength(5) // All cards for tiebreaking
     })
 
     it('returns highCard for non-consecutive, non-matching cards', () => {
@@ -563,9 +563,9 @@ describe('tieBreak', () => {
     setCards(player, 'clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9')
 
     const candidates = [createCandidate(player)]
-    const result = tieBreak(candidates)
+    const { winners } = tieBreak(candidates)
 
-    expect(result).toHaveLength(1)
+    expect(winners).toHaveLength(1)
   })
 
   it('breaks tie by highest card', () => {
@@ -578,10 +578,11 @@ describe('tieBreak', () => {
     setCards(p2, 'clubs:13', 'hearts:5', 'spades:6', 'diamonds:7', 'clubs:8')
 
     const candidates = [createCandidate(p1), createCandidate(p2)]
-    const result = tieBreak(candidates)
+    const { winners, cardsCompared } = tieBreak(candidates)
 
-    expect(result).toHaveLength(1)
-    expect(result[0].player.id).toBe('p1')
+    expect(winners).toHaveLength(1)
+    expect(winners[0].player.id).toBe('p1')
+    expect(cardsCompared).toBe(1) // First card broke the tie
   })
 
   it('uses second highest card when first is tied', () => {
@@ -594,10 +595,11 @@ describe('tieBreak', () => {
     setCards(p2, 'spades:14', 'hearts:12', 'diamonds:6', 'clubs:7', 'hearts:8')
 
     const candidates = [createCandidate(p1), createCandidate(p2)]
-    const result = tieBreak(candidates)
+    const { winners, cardsCompared } = tieBreak(candidates)
 
-    expect(result).toHaveLength(1)
-    expect(result[0].player.id).toBe('p1')
+    expect(winners).toHaveLength(1)
+    expect(winners[0].player.id).toBe('p1')
+    expect(cardsCompared).toBe(2) // Second card broke the tie
   })
 
   it('returns all candidates when completely tied', () => {
@@ -609,14 +611,15 @@ describe('tieBreak', () => {
     setCards(p2, 'spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:10')
 
     const candidates = [createCandidate(p1), createCandidate(p2)]
-    const result = tieBreak(candidates)
+    const { winners, cardsCompared } = tieBreak(candidates)
 
-    expect(result).toHaveLength(2)
+    expect(winners).toHaveLength(2)
+    expect(cardsCompared).toBe(5) // All cards compared, still tied
   })
 
   it('returns empty array for empty input', () => {
-    const result = tieBreak([])
-    expect(result).toHaveLength(0)
+    const { winners } = tieBreak([])
+    expect(winners).toHaveLength(0)
   })
 })
 
@@ -659,16 +662,16 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Pair vs Pair', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher pair (Aces vs Kings)'}                 | ${['clubs:14', 'hearts:14', 'spades:5', 'diamonds:8', 'clubs:11']} | ${['clubs:13', 'hearts:13', 'spades:5', 'diamonds:8', 'spades:11']} | ${'p1'}
-      ${'Higher pair (Kings vs Queens)'}               | ${['clubs:13', 'hearts:13', 'spades:5', 'diamonds:8', 'clubs:11']} | ${['clubs:12', 'hearts:12', 'spades:5', 'diamonds:8', 'spades:11']} | ${'p1'}
-      ${'Higher pair (6s vs 3s) - Sam vs Jesus bug'}   | ${['clubs:4', 'clubs:11', 'diamonds:6', 'spades:6', 'hearts:9']}   | ${['spades:3', 'diamonds:2', 'diamonds:14', 'clubs:3', 'spades:9']} | ${'p1'}
-      ${'Lower pair with Ace kicker loses to higher'}  | ${['clubs:2', 'hearts:2', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['clubs:10', 'hearts:10', 'spades:5', 'diamonds:4', 'clubs:3']}   | ${'p2'}
-      ${'Same pair, higher kicker wins'}               | ${['clubs:9', 'hearts:9', 'spades:14', 'diamonds:5', 'clubs:2']}   | ${['spades:9', 'diamonds:9', 'clubs:13', 'hearts:5', 'diamonds:2']} | ${'p1'}
-      ${'Same pair, second kicker decides'}            | ${['clubs:8', 'hearts:8', 'spades:14', 'diamonds:13', 'clubs:2']}  | ${['spades:8', 'diamonds:8', 'clubs:14', 'hearts:12', 'diamonds:2']} | ${'p1'}
-      ${'Same pair, third kicker decides'}             | ${['clubs:7', 'hearts:7', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['spades:7', 'diamonds:7', 'clubs:14', 'hearts:13', 'diamonds:11']} | ${'p1'}
-      ${'Same pair and kickers = tie'}                 | ${['clubs:6', 'hearts:6', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['spades:6', 'diamonds:6', 'clubs:14', 'hearts:13', 'diamonds:12']} | ${'tie'}
-      ${'Pair of 2s vs pair of 3s'}                    | ${['clubs:2', 'hearts:2', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['clubs:3', 'hearts:3', 'spades:5', 'diamonds:4', 'clubs:6']}      | ${'p2'}
+      description                                     | p1Cards                                                            | p2Cards                                                               | expectedWinner
+      ${'Higher pair (Aces vs Kings)'}                | ${['clubs:14', 'hearts:14', 'spades:5', 'diamonds:8', 'clubs:11']} | ${['clubs:13', 'hearts:13', 'spades:5', 'diamonds:8', 'spades:11']}   | ${'p1'}
+      ${'Higher pair (Kings vs Queens)'}              | ${['clubs:13', 'hearts:13', 'spades:5', 'diamonds:8', 'clubs:11']} | ${['clubs:12', 'hearts:12', 'spades:5', 'diamonds:8', 'spades:11']}   | ${'p1'}
+      ${'Higher pair (6s vs 3s) - Sam vs Jesus bug'}  | ${['clubs:4', 'clubs:11', 'diamonds:6', 'spades:6', 'hearts:9']}   | ${['spades:3', 'diamonds:2', 'diamonds:14', 'clubs:3', 'spades:9']}   | ${'p1'}
+      ${'Lower pair with Ace kicker loses to higher'} | ${['clubs:2', 'hearts:2', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['clubs:10', 'hearts:10', 'spades:5', 'diamonds:4', 'clubs:3']}     | ${'p2'}
+      ${'Same pair, higher kicker wins'}              | ${['clubs:9', 'hearts:9', 'spades:14', 'diamonds:5', 'clubs:2']}   | ${['spades:9', 'diamonds:9', 'clubs:13', 'hearts:5', 'diamonds:2']}   | ${'p1'}
+      ${'Same pair, second kicker decides'}           | ${['clubs:8', 'hearts:8', 'spades:14', 'diamonds:13', 'clubs:2']}  | ${['spades:8', 'diamonds:8', 'clubs:14', 'hearts:12', 'diamonds:2']}  | ${'p1'}
+      ${'Same pair, third kicker decides'}            | ${['clubs:7', 'hearts:7', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['spades:7', 'diamonds:7', 'clubs:14', 'hearts:13', 'diamonds:11']} | ${'p1'}
+      ${'Same pair and kickers = tie'}                | ${['clubs:6', 'hearts:6', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['spades:6', 'diamonds:6', 'clubs:14', 'hearts:13', 'diamonds:12']} | ${'tie'}
+      ${'Pair of 2s vs pair of 3s'}                   | ${['clubs:2', 'hearts:2', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['clubs:3', 'hearts:3', 'spades:5', 'diamonds:4', 'clubs:6']}       | ${'p2'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -677,13 +680,13 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Two Pair vs Two Pair', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher top pair wins (KK+22 vs QQ+JJ)'}       | ${['clubs:13', 'hearts:13', 'spades:2', 'diamonds:2', 'clubs:5']}  | ${['clubs:12', 'hearts:12', 'spades:11', 'diamonds:11', 'clubs:5']} | ${'p1'}
-      ${'Same top pair, higher second pair wins'}      | ${['clubs:14', 'hearts:14', 'spades:10', 'diamonds:10', 'clubs:5']} | ${['spades:14', 'diamonds:14', 'clubs:9', 'hearts:9', 'diamonds:5']} | ${'p1'}
-      ${'Same two pairs, kicker decides'}              | ${['clubs:13', 'hearts:13', 'spades:10', 'diamonds:10', 'clubs:14']} | ${['spades:13', 'diamonds:13', 'clubs:10', 'hearts:10', 'diamonds:12']} | ${'p1'}
-      ${'Same two pairs, same kicker = tie'}           | ${['clubs:12', 'hearts:12', 'spades:8', 'diamonds:8', 'clubs:14']} | ${['spades:12', 'diamonds:12', 'clubs:8', 'hearts:8', 'diamonds:14']} | ${'tie'}
-      ${'AA+KK beats AA+QQ'}                           | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:13', 'clubs:5']} | ${['spades:14', 'diamonds:14', 'clubs:12', 'hearts:12', 'diamonds:5']} | ${'p1'}
-      ${'33+22 loses to 44+33'}                        | ${['clubs:3', 'hearts:3', 'spades:2', 'diamonds:2', 'clubs:14']}   | ${['clubs:4', 'hearts:4', 'spades:3', 'diamonds:3', 'clubs:5']}      | ${'p2'}
+      description                                 | p1Cards                                                              | p2Cards                                                                 | expectedWinner
+      ${'Higher top pair wins (KK+22 vs QQ+JJ)'}  | ${['clubs:13', 'hearts:13', 'spades:2', 'diamonds:2', 'clubs:5']}    | ${['clubs:12', 'hearts:12', 'spades:11', 'diamonds:11', 'clubs:5']}     | ${'p1'}
+      ${'Same top pair, higher second pair wins'} | ${['clubs:14', 'hearts:14', 'spades:10', 'diamonds:10', 'clubs:5']}  | ${['spades:14', 'diamonds:14', 'clubs:9', 'hearts:9', 'diamonds:5']}    | ${'p1'}
+      ${'Same two pairs, kicker decides'}         | ${['clubs:13', 'hearts:13', 'spades:10', 'diamonds:10', 'clubs:14']} | ${['spades:13', 'diamonds:13', 'clubs:10', 'hearts:10', 'diamonds:12']} | ${'p1'}
+      ${'Same two pairs, same kicker = tie'}      | ${['clubs:12', 'hearts:12', 'spades:8', 'diamonds:8', 'clubs:14']}   | ${['spades:12', 'diamonds:12', 'clubs:8', 'hearts:8', 'diamonds:14']}   | ${'tie'}
+      ${'AA+KK beats AA+QQ'}                      | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:13', 'clubs:5']}  | ${['spades:14', 'diamonds:14', 'clubs:12', 'hearts:12', 'diamonds:5']}  | ${'p1'}
+      ${'33+22 loses to 44+33'}                   | ${['clubs:3', 'hearts:3', 'spades:2', 'diamonds:2', 'clubs:14']}     | ${['clubs:4', 'hearts:4', 'spades:3', 'diamonds:3', 'clubs:5']}         | ${'p2'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -692,12 +695,12 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Three of a Kind vs Three of a Kind', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher trips (AAA vs KKK)'}                   | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:5', 'clubs:8']} | ${['clubs:13', 'hearts:13', 'spades:13', 'diamonds:5', 'clubs:8']} | ${'p1'}
-      ${'Higher trips (999 vs 888)'}                   | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:5', 'clubs:8']}    | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:5', 'clubs:9']}    | ${'p1'}
-      ${'222 loses to 333'}                            | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:14', 'clubs:13']}  | ${['clubs:3', 'hearts:3', 'spades:3', 'diamonds:5', 'clubs:6']}    | ${'p2'}
-      ${'Same trips, higher kicker wins'}              | ${['clubs:7', 'hearts:7', 'spades:7', 'diamonds:14', 'clubs:5']}   | ${['diamonds:7', 'clubs:7', 'hearts:7', 'spades:13', 'diamonds:5']} | ${'p1'}
-      ${'Same trips, second kicker decides'}           | ${['clubs:6', 'hearts:6', 'spades:6', 'diamonds:14', 'clubs:13']}  | ${['diamonds:6', 'clubs:6', 'hearts:6', 'spades:14', 'diamonds:12']} | ${'p1'}
+      description                            | p1Cards                                                            | p2Cards                                                              | expectedWinner
+      ${'Higher trips (AAA vs KKK)'}         | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:5', 'clubs:8']} | ${['clubs:13', 'hearts:13', 'spades:13', 'diamonds:5', 'clubs:8']}   | ${'p1'}
+      ${'Higher trips (999 vs 888)'}         | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:5', 'clubs:8']}    | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:5', 'clubs:9']}      | ${'p1'}
+      ${'222 loses to 333'}                  | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:14', 'clubs:13']}  | ${['clubs:3', 'hearts:3', 'spades:3', 'diamonds:5', 'clubs:6']}      | ${'p2'}
+      ${'Same trips, higher kicker wins'}    | ${['clubs:7', 'hearts:7', 'spades:7', 'diamonds:14', 'clubs:5']}   | ${['diamonds:7', 'clubs:7', 'hearts:7', 'spades:13', 'diamonds:5']}  | ${'p1'}
+      ${'Same trips, second kicker decides'} | ${['clubs:6', 'hearts:6', 'spades:6', 'diamonds:14', 'clubs:13']}  | ${['diamonds:6', 'clubs:6', 'hearts:6', 'spades:14', 'diamonds:12']} | ${'p1'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -706,14 +709,14 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Straight vs Straight', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher straight (10-A vs 9-K)'}               | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14']} | ${['clubs:9', 'hearts:10', 'spades:11', 'diamonds:12', 'clubs:13']} | ${'p1'}
-      ${'Higher straight (6-10 vs 5-9)'}               | ${['clubs:6', 'hearts:7', 'spades:8', 'diamonds:9', 'clubs:10']}   | ${['clubs:5', 'hearts:6', 'spades:7', 'diamonds:8', 'clubs:9']}    | ${'p1'}
-      ${'Same straight = tie'}                         | ${['clubs:8', 'hearts:9', 'spades:10', 'diamonds:11', 'clubs:12']} | ${['spades:8', 'diamonds:9', 'clubs:10', 'hearts:11', 'diamonds:12']} | ${'tie'}
-      ${'Broadway (10-A) beats 9-K'}                   | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'hearts:14']} | ${['clubs:9', 'hearts:10', 'spades:11', 'diamonds:12', 'clubs:13']} | ${'p1'}
-      ${'Wheel (A-5) loses to 2-6 straight'}           | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}   | ${['clubs:2', 'hearts:3', 'spades:4', 'diamonds:5', 'clubs:6']}    | ${'p2'}
-      ${'Wheel (A-5) is the lowest straight'}          | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}   | ${['clubs:6', 'hearts:7', 'spades:8', 'diamonds:9', 'clubs:10']}   | ${'p2'}
-      ${'Two wheels = tie'}                            | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}   | ${['spades:14', 'diamonds:2', 'clubs:3', 'hearts:4', 'spades:5']}  | ${'tie'}
+      description                             | p1Cards                                                               | p2Cards                                                               | expectedWinner
+      ${'Higher straight (10-A vs 9-K)'}      | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14']}  | ${['clubs:9', 'hearts:10', 'spades:11', 'diamonds:12', 'clubs:13']}   | ${'p1'}
+      ${'Higher straight (6-10 vs 5-9)'}      | ${['clubs:6', 'hearts:7', 'spades:8', 'diamonds:9', 'clubs:10']}      | ${['clubs:5', 'hearts:6', 'spades:7', 'diamonds:8', 'clubs:9']}       | ${'p1'}
+      ${'Same straight = tie'}                | ${['clubs:8', 'hearts:9', 'spades:10', 'diamonds:11', 'clubs:12']}    | ${['spades:8', 'diamonds:9', 'clubs:10', 'hearts:11', 'diamonds:12']} | ${'tie'}
+      ${'Broadway (10-A) beats 9-K'}          | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'hearts:14']} | ${['clubs:9', 'hearts:10', 'spades:11', 'diamonds:12', 'clubs:13']}   | ${'p1'}
+      ${'Wheel (A-5) loses to 2-6 straight'}  | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}      | ${['clubs:2', 'hearts:3', 'spades:4', 'diamonds:5', 'clubs:6']}       | ${'p2'}
+      ${'Wheel (A-5) is the lowest straight'} | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}      | ${['clubs:6', 'hearts:7', 'spades:8', 'diamonds:9', 'clubs:10']}      | ${'p2'}
+      ${'Two wheels = tie'}                   | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}      | ${['spades:14', 'diamonds:2', 'clubs:3', 'hearts:4', 'spades:5']}     | ${'tie'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -722,12 +725,12 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Flush vs Flush', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher flush (A high vs K high)'}             | ${['clubs:14', 'clubs:10', 'clubs:8', 'clubs:5', 'clubs:3']}       | ${['hearts:13', 'hearts:10', 'hearts:8', 'hearts:5', 'hearts:3']}  | ${'p1'}
-      ${'Same high, second card decides'}              | ${['clubs:14', 'clubs:13', 'clubs:8', 'clubs:5', 'clubs:3']}       | ${['hearts:14', 'hearts:12', 'hearts:8', 'hearts:5', 'hearts:3']}  | ${'p1'}
-      ${'Same first two, third card decides'}          | ${['clubs:14', 'clubs:13', 'clubs:12', 'clubs:5', 'clubs:3']}      | ${['hearts:14', 'hearts:13', 'hearts:11', 'hearts:5', 'hearts:3']} | ${'p1'}
-      ${'Same flush values = tie'}                     | ${['clubs:14', 'clubs:12', 'clubs:10', 'clubs:8', 'clubs:6']}      | ${['hearts:14', 'hearts:12', 'hearts:10', 'hearts:8', 'hearts:6']} | ${'tie'}
-      ${'Low flush loses to high flush'}               | ${['clubs:9', 'clubs:7', 'clubs:5', 'clubs:4', 'clubs:2']}         | ${['hearts:14', 'hearts:5', 'hearts:4', 'hearts:3', 'hearts:2']}   | ${'p2'}
+      description                             | p1Cards                                                       | p2Cards                                                            | expectedWinner
+      ${'Higher flush (A high vs K high)'}    | ${['clubs:14', 'clubs:10', 'clubs:8', 'clubs:5', 'clubs:3']}  | ${['hearts:13', 'hearts:10', 'hearts:8', 'hearts:5', 'hearts:3']}  | ${'p1'}
+      ${'Same high, second card decides'}     | ${['clubs:14', 'clubs:13', 'clubs:8', 'clubs:5', 'clubs:3']}  | ${['hearts:14', 'hearts:12', 'hearts:8', 'hearts:5', 'hearts:3']}  | ${'p1'}
+      ${'Same first two, third card decides'} | ${['clubs:14', 'clubs:13', 'clubs:12', 'clubs:5', 'clubs:3']} | ${['hearts:14', 'hearts:13', 'hearts:11', 'hearts:5', 'hearts:3']} | ${'p1'}
+      ${'Same flush values = tie'}            | ${['clubs:14', 'clubs:12', 'clubs:10', 'clubs:8', 'clubs:6']} | ${['hearts:14', 'hearts:12', 'hearts:10', 'hearts:8', 'hearts:6']} | ${'tie'}
+      ${'Low flush loses to high flush'}      | ${['clubs:9', 'clubs:7', 'clubs:5', 'clubs:4', 'clubs:2']}    | ${['hearts:14', 'hearts:5', 'hearts:4', 'hearts:3', 'hearts:2']}   | ${'p2'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -736,11 +739,11 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Full House vs Full House', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher trips wins (AAA+KK vs QQQ+JJ)'}        | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:13', 'hearts:13']} | ${['clubs:12', 'hearts:12', 'spades:12', 'diamonds:11', 'clubs:11']} | ${'p1'}
-      ${'Higher trips wins (999+33 vs 888+44)'}        | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:3', 'clubs:3']}    | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:4', 'clubs:4']}    | ${'p1'}
-      ${'222+KK loses to 333+44 (trips matter most)'}  | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:13', 'hearts:13']} | ${['clubs:3', 'hearts:3', 'spades:3', 'diamonds:4', 'clubs:4']}    | ${'p2'}
-      ${'JJJ+33 beats 1010+44 (trips > pair)'}         | ${['clubs:11', 'hearts:11', 'spades:11', 'diamonds:3', 'clubs:3']} | ${['clubs:10', 'hearts:10', 'spades:10', 'diamonds:4', 'clubs:4']} | ${'p1'}
+      description                                     | p1Cards                                                               | p2Cards                                                              | expectedWinner
+      ${'Higher trips wins (AAA+KK vs QQQ+JJ)'}       | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:13', 'hearts:13']} | ${['clubs:12', 'hearts:12', 'spades:12', 'diamonds:11', 'clubs:11']} | ${'p1'}
+      ${'Higher trips wins (999+33 vs 888+44)'}       | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:3', 'clubs:3']}       | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:4', 'clubs:4']}      | ${'p1'}
+      ${'222+KK loses to 333+44 (trips matter most)'} | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:13', 'hearts:13']}    | ${['clubs:3', 'hearts:3', 'spades:3', 'diamonds:4', 'clubs:4']}      | ${'p2'}
+      ${'JJJ+33 beats 1010+44 (trips > pair)'}        | ${['clubs:11', 'hearts:11', 'spades:11', 'diamonds:3', 'clubs:3']}    | ${['clubs:10', 'hearts:10', 'spades:10', 'diamonds:4', 'clubs:4']}   | ${'p1'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -749,11 +752,11 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Four of a Kind vs Four of a Kind', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher quads (AAAA vs KKKK)'}                 | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:14', 'clubs:5']} | ${['clubs:13', 'hearts:13', 'spades:13', 'diamonds:13', 'clubs:5']} | ${'p1'}
-      ${'Higher quads (9999 vs 8888)'}                 | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:9', 'clubs:5']}    | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:8', 'clubs:5']}    | ${'p1'}
-      ${'Same quads, kicker decides'}                  | ${['clubs:7', 'hearts:7', 'spades:7', 'diamonds:7', 'clubs:14']}   | ${['clubs:7', 'hearts:7', 'spades:7', 'diamonds:7', 'clubs:13']}   | ${'p1'}
-      ${'2222 loses to 3333'}                          | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:2', 'clubs:14']}   | ${['clubs:3', 'hearts:3', 'spades:3', 'diamonds:3', 'clubs:5']}    | ${'p2'}
+      description                      | p1Cards                                                             | p2Cards                                                             | expectedWinner
+      ${'Higher quads (AAAA vs KKKK)'} | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:14', 'clubs:5']} | ${['clubs:13', 'hearts:13', 'spades:13', 'diamonds:13', 'clubs:5']} | ${'p1'}
+      ${'Higher quads (9999 vs 8888)'} | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:9', 'clubs:5']}     | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:8', 'clubs:5']}     | ${'p1'}
+      ${'Same quads, kicker decides'}  | ${['clubs:7', 'hearts:7', 'spades:7', 'diamonds:7', 'clubs:14']}    | ${['clubs:7', 'hearts:7', 'spades:7', 'diamonds:7', 'clubs:13']}    | ${'p1'}
+      ${'2222 loses to 3333'}          | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:2', 'clubs:14']}    | ${['clubs:3', 'hearts:3', 'spades:3', 'diamonds:3', 'clubs:5']}     | ${'p2'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -762,12 +765,12 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Straight Flush vs Straight Flush', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Higher straight flush wins'}                  | ${['clubs:9', 'clubs:10', 'clubs:11', 'clubs:12', 'clubs:13']}     | ${['hearts:8', 'hearts:9', 'hearts:10', 'hearts:11', 'hearts:12']} | ${'p1'}
-      ${'Same straight flush = tie'}                   | ${['clubs:5', 'clubs:6', 'clubs:7', 'clubs:8', 'clubs:9']}         | ${['hearts:5', 'hearts:6', 'hearts:7', 'hearts:8', 'hearts:9']}    | ${'tie'}
-      ${'10-high beats 9-high straight flush'}         | ${['clubs:6', 'clubs:7', 'clubs:8', 'clubs:9', 'clubs:10']}        | ${['hearts:5', 'hearts:6', 'hearts:7', 'hearts:8', 'hearts:9']}    | ${'p1'}
-      ${'Wheel straight flush (A-5) loses to 2-6'}     | ${['clubs:14', 'clubs:2', 'clubs:3', 'clubs:4', 'clubs:5']}        | ${['hearts:2', 'hearts:3', 'hearts:4', 'hearts:5', 'hearts:6']}    | ${'p2'}
-      ${'Two wheel straight flushes = tie'}            | ${['clubs:14', 'clubs:2', 'clubs:3', 'clubs:4', 'clubs:5']}        | ${['hearts:14', 'hearts:2', 'hearts:3', 'hearts:4', 'hearts:5']}   | ${'tie'}
+      description                                  | p1Cards                                                        | p2Cards                                                            | expectedWinner
+      ${'Higher straight flush wins'}              | ${['clubs:9', 'clubs:10', 'clubs:11', 'clubs:12', 'clubs:13']} | ${['hearts:8', 'hearts:9', 'hearts:10', 'hearts:11', 'hearts:12']} | ${'p1'}
+      ${'Same straight flush = tie'}               | ${['clubs:5', 'clubs:6', 'clubs:7', 'clubs:8', 'clubs:9']}     | ${['hearts:5', 'hearts:6', 'hearts:7', 'hearts:8', 'hearts:9']}    | ${'tie'}
+      ${'10-high beats 9-high straight flush'}     | ${['clubs:6', 'clubs:7', 'clubs:8', 'clubs:9', 'clubs:10']}    | ${['hearts:5', 'hearts:6', 'hearts:7', 'hearts:8', 'hearts:9']}    | ${'p1'}
+      ${'Wheel straight flush (A-5) loses to 2-6'} | ${['clubs:14', 'clubs:2', 'clubs:3', 'clubs:4', 'clubs:5']}    | ${['hearts:2', 'hearts:3', 'hearts:4', 'hearts:5', 'hearts:6']}    | ${'p2'}
+      ${'Two wheel straight flushes = tie'}        | ${['clubs:14', 'clubs:2', 'clubs:3', 'clubs:4', 'clubs:5']}    | ${['hearts:14', 'hearts:2', 'hearts:3', 'hearts:4', 'hearts:5']}   | ${'tie'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -776,16 +779,16 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Cross-hand type comparisons', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner | p1HandType            | p2HandType
-      ${'Pair beats high card'}                        | ${['clubs:2', 'hearts:2', 'spades:5', 'diamonds:8', 'clubs:11']}   | ${['clubs:14', 'hearts:13', 'spades:12', 'diamonds:10', 'clubs:8']} | ${'p1'}        | ${'pair'}             | ${'highCard'}
-      ${'Two pair beats pair'}                         | ${['clubs:3', 'hearts:3', 'spades:4', 'diamonds:4', 'clubs:5']}    | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:12', 'clubs:11']} | ${'p1'}        | ${'twoPair'}          | ${'pair'}
-      ${'Three of a kind beats two pair'}              | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:5', 'clubs:8']}    | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:13', 'clubs:11']} | ${'p1'}        | ${'threeOfAKind'}     | ${'twoPair'}
-      ${'Straight beats three of a kind'}              | ${['clubs:5', 'hearts:6', 'spades:7', 'diamonds:8', 'clubs:9']}    | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:5', 'clubs:8']}  | ${'p1'}        | ${'straight'}         | ${'threeOfAKind'}
-      ${'Flush beats straight'}                        | ${['clubs:2', 'clubs:5', 'clubs:8', 'clubs:11', 'clubs:13']}       | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14']} | ${'p1'}        | ${'flush'}            | ${'straight'}
-      ${'Full house beats flush'}                      | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:5', 'clubs:5']}    | ${['hearts:3', 'hearts:6', 'hearts:9', 'hearts:12', 'hearts:14']}  | ${'p1'}        | ${'fullHouse'}        | ${'flush'}
-      ${'Four of a kind beats full house'}             | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:2', 'clubs:5']}    | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:13', 'clubs:13']} | ${'p1'}        | ${'fourOfAKind'}      | ${'fullHouse'}
-      ${'Straight flush beats four of a kind'}         | ${['clubs:5', 'clubs:6', 'clubs:7', 'clubs:8', 'clubs:9']}         | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:14', 'clubs:5']} | ${'p1'}        | ${'straightFlush'}    | ${'fourOfAKind'}
-      ${'Royal flush beats straight flush'}            | ${['clubs:10', 'clubs:11', 'clubs:12', 'clubs:13', 'clubs:14']}    | ${['hearts:9', 'hearts:10', 'hearts:11', 'hearts:12', 'hearts:13']} | ${'p1'}        | ${'royalStraightFlush'} | ${'straightFlush'}
+      description                              | p1Cards                                                          | p2Cards                                                              | expectedWinner | p1HandType              | p2HandType
+      ${'Pair beats high card'}                | ${['clubs:2', 'hearts:2', 'spades:5', 'diamonds:8', 'clubs:11']} | ${['clubs:14', 'hearts:13', 'spades:12', 'diamonds:10', 'clubs:8']}  | ${'p1'}        | ${'pair'}               | ${'highCard'}
+      ${'Two pair beats pair'}                 | ${['clubs:3', 'hearts:3', 'spades:4', 'diamonds:4', 'clubs:5']}  | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:12', 'clubs:11']} | ${'p1'}        | ${'twoPair'}            | ${'pair'}
+      ${'Three of a kind beats two pair'}      | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:5', 'clubs:8']}  | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:13', 'clubs:11']} | ${'p1'}        | ${'threeOfAKind'}       | ${'twoPair'}
+      ${'Straight beats three of a kind'}      | ${['clubs:5', 'hearts:6', 'spades:7', 'diamonds:8', 'clubs:9']}  | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:5', 'clubs:8']}   | ${'p1'}        | ${'straight'}           | ${'threeOfAKind'}
+      ${'Flush beats straight'}                | ${['clubs:2', 'clubs:5', 'clubs:8', 'clubs:11', 'clubs:13']}     | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14']} | ${'p1'}        | ${'flush'}              | ${'straight'}
+      ${'Full house beats flush'}              | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:5', 'clubs:5']}  | ${['hearts:3', 'hearts:6', 'hearts:9', 'hearts:12', 'hearts:14']}    | ${'p1'}        | ${'fullHouse'}          | ${'flush'}
+      ${'Four of a kind beats full house'}     | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:2', 'clubs:5']}  | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:13', 'clubs:13']} | ${'p1'}        | ${'fourOfAKind'}        | ${'fullHouse'}
+      ${'Straight flush beats four of a kind'} | ${['clubs:5', 'clubs:6', 'clubs:7', 'clubs:8', 'clubs:9']}       | ${['clubs:14', 'hearts:14', 'spades:14', 'diamonds:14', 'clubs:5']}  | ${'p1'}        | ${'straightFlush'}      | ${'fourOfAKind'}
+      ${'Royal flush beats straight flush'}    | ${['clubs:10', 'clubs:11', 'clubs:12', 'clubs:13', 'clubs:14']}  | ${['hearts:9', 'hearts:10', 'hearts:11', 'hearts:12', 'hearts:13']}  | ${'p1'}        | ${'royalStraightFlush'} | ${'straightFlush'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -794,12 +797,12 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('High card vs high card', () => {
     it.each`
-      description                                      | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Ace high beats King high'}                    | ${['clubs:14', 'hearts:12', 'spades:10', 'diamonds:8', 'clubs:6']} | ${['clubs:13', 'hearts:12', 'spades:10', 'diamonds:8', 'clubs:6']} | ${'p1'}
-      ${'Same first, second card decides'}             | ${['clubs:14', 'hearts:13', 'spades:10', 'diamonds:8', 'clubs:6']} | ${['spades:14', 'hearts:12', 'diamonds:10', 'clubs:8', 'hearts:6']} | ${'p1'}
-      ${'Fifth card decides'}                          | ${['clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9']} | ${['spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:8']} | ${'p1'}
-      ${'Same high cards = tie'}                       | ${['clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9']} | ${['spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:9']} | ${'tie'}
-      ${'Low high card loses'}                         | ${['clubs:9', 'hearts:7', 'spades:5', 'diamonds:4', 'clubs:2']}    | ${['clubs:14', 'hearts:5', 'spades:4', 'diamonds:3', 'clubs:2']}   | ${'p2'}
+      description                          | p1Cards                                                             | p2Cards                                                              | expectedWinner
+      ${'Ace high beats King high'}        | ${['clubs:14', 'hearts:12', 'spades:10', 'diamonds:8', 'clubs:6']}  | ${['clubs:13', 'hearts:12', 'spades:10', 'diamonds:8', 'clubs:6']}   | ${'p1'}
+      ${'Same first, second card decides'} | ${['clubs:14', 'hearts:13', 'spades:10', 'diamonds:8', 'clubs:6']}  | ${['spades:14', 'hearts:12', 'diamonds:10', 'clubs:8', 'hearts:6']}  | ${'p1'}
+      ${'Fifth card decides'}              | ${['clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9']} | ${['spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:8']} | ${'p1'}
+      ${'Same high cards = tie'}           | ${['clubs:14', 'hearts:13', 'spades:12', 'diamonds:11', 'clubs:9']} | ${['spades:14', 'diamonds:13', 'hearts:12', 'clubs:11', 'hearts:9']} | ${'tie'}
+      ${'Low high card loses'}             | ${['clubs:9', 'hearts:7', 'spades:5', 'diamonds:4', 'clubs:2']}     | ${['clubs:14', 'hearts:5', 'spades:4', 'diamonds:3', 'clubs:2']}     | ${'p2'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)
@@ -808,14 +811,14 @@ describe('Hand comparison matrix (1v1 matchups)', () => {
 
   describe('Edge cases and tricky scenarios', () => {
     it.each`
-      description                                                    | p1Cards                                                          | p2Cards                                                          | expectedWinner
-      ${'Low pair with all high kickers loses to high pair'}         | ${['clubs:2', 'hearts:2', 'spades:14', 'diamonds:13', 'clubs:12']} | ${['clubs:14', 'hearts:14', 'spades:3', 'diamonds:4', 'clubs:5']}  | ${'p2'}
-      ${'Pair of Aces beats pair of Kings with Ace kicker'}          | ${['clubs:14', 'hearts:14', 'spades:3', 'diamonds:4', 'clubs:5']}  | ${['clubs:13', 'hearts:13', 'spades:14', 'diamonds:12', 'clubs:11']} | ${'p1'}
-      ${'Two pair with low pairs beats single high pair'}            | ${['clubs:3', 'hearts:3', 'spades:2', 'diamonds:2', 'clubs:5']}    | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:12', 'clubs:11']} | ${'p1'}
-      ${'222+33 full house loses to KKK+22 full house'}              | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:3', 'clubs:3']}    | ${['clubs:13', 'hearts:13', 'spades:13', 'diamonds:2', 'hearts:2']}  | ${'p2'}
-      ${'Broadway straight (10-A) beats middle straight'}            | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14']} | ${['clubs:8', 'hearts:9', 'spades:10', 'diamonds:11', 'clubs:12']} | ${'p1'}
-      ${'999+AA full house beats 888+KK full house'}                 | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:14', 'clubs:14']}  | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:13', 'hearts:13']} | ${'p1'}
-      ${'Wheel straight (A-5) loses to any regular straight'}        | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}   | ${['clubs:6', 'hearts:7', 'spades:8', 'diamonds:9', 'clubs:10']}   | ${'p2'}
+      description                                             | p1Cards                                                              | p2Cards                                                              | expectedWinner
+      ${'Low pair with all high kickers loses to high pair'}  | ${['clubs:2', 'hearts:2', 'spades:14', 'diamonds:13', 'clubs:12']}   | ${['clubs:14', 'hearts:14', 'spades:3', 'diamonds:4', 'clubs:5']}    | ${'p2'}
+      ${'Pair of Aces beats pair of Kings with Ace kicker'}   | ${['clubs:14', 'hearts:14', 'spades:3', 'diamonds:4', 'clubs:5']}    | ${['clubs:13', 'hearts:13', 'spades:14', 'diamonds:12', 'clubs:11']} | ${'p1'}
+      ${'Two pair with low pairs beats single high pair'}     | ${['clubs:3', 'hearts:3', 'spades:2', 'diamonds:2', 'clubs:5']}      | ${['clubs:14', 'hearts:14', 'spades:13', 'diamonds:12', 'clubs:11']} | ${'p1'}
+      ${'222+33 full house loses to KKK+22 full house'}       | ${['clubs:2', 'hearts:2', 'spades:2', 'diamonds:3', 'clubs:3']}      | ${['clubs:13', 'hearts:13', 'spades:13', 'diamonds:2', 'hearts:2']}  | ${'p2'}
+      ${'Broadway straight (10-A) beats middle straight'}     | ${['clubs:10', 'hearts:11', 'spades:12', 'diamonds:13', 'clubs:14']} | ${['clubs:8', 'hearts:9', 'spades:10', 'diamonds:11', 'clubs:12']}   | ${'p1'}
+      ${'999+AA full house beats 888+KK full house'}          | ${['clubs:9', 'hearts:9', 'spades:9', 'diamonds:14', 'clubs:14']}    | ${['clubs:8', 'hearts:8', 'spades:8', 'diamonds:13', 'hearts:13']}   | ${'p1'}
+      ${'Wheel straight (A-5) loses to any regular straight'} | ${['clubs:14', 'hearts:2', 'spades:3', 'diamonds:4', 'clubs:5']}     | ${['clubs:6', 'hearts:7', 'spades:8', 'diamonds:9', 'clubs:10']}     | ${'p2'}
     `('$description', ({ p1Cards, p2Cards, expectedWinner }) => {
       const result = runMatchup(p1Cards, p2Cards)
       expect(result.winnerId).toBe(expectedWinner)

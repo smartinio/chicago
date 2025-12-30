@@ -32,7 +32,7 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
   const [selectedCards, setSelectedCards] = useState<Card[]>([])
 
   // Calculate optimal zoom scale for desktop to fill vertical space
-  const scale = useDesktopScale()
+  const scale = 1 // useDesktopScale()
 
   // Start every render by assuming failure
   // Will set to true further down
@@ -177,14 +177,7 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
   return (
     <LightMode>
       {/* Outer wrapper that applies zoom scaling for desktop */}
-      <Box
-        position="fixed"
-        top={0}
-        left={0}
-        width="100vw"
-        height="100vh"
-        overflow="hidden"
-      >
+      <Box position="fixed" top={0} left={0} width="100vw" height="100vh" overflow="hidden">
         {/* Scaling wrapper - transform creates containing block for fixed descendants */}
         <Box
           width={`${100 / scale}vw`}

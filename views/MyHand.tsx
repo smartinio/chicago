@@ -34,8 +34,12 @@ export const MyHand = ({ selectedCards, setSelectedCards }: MyHandProps) => {
   const mutationOptions = { onSuccess: dataHandler(() => {}, handleError) }
   const playCardMutation = trpc.playCard.useMutation(mutationOptions)
 
-  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 1 } })
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 1 } })
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: { distance: 1, tolerance: 5 },
+  })
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { distance: 1, tolerance: 5 },
+  })
   const sensors = useSensors(touchSensor, mouseSensor)
 
   useEffect(() => {
@@ -123,16 +127,17 @@ export const MyHand = ({ selectedCards, setSelectedCards }: MyHandProps) => {
 
   const handleDragEnd = (e: DragEndEvent) => {
     setPendingDropCard(undefined)
-    setSelectedCards([])
     if (e.over && isMyTurn) {
       playCard(e.active.data.current as Card)
     }
   }
 
   const handleDragOver = (e: DragOverEvent) => {
-    if (isMyTurn) {
+    if (isMyTurn && e.over) {
       setSelectedCards([])
-      setPendingDropCard(e.over ? (e.active.data.current as Card) : undefined)
+      setPendingDropCard(e.active.data.current as Card)
+    } else {
+      setPendingDropCard(undefined)
     }
   }
 

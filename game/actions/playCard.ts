@@ -84,7 +84,10 @@ export const playCard = publicProcedure
         if (chicagoKilled) {
           const roundWinner = makesItRain ? player : winning.player
           mutate.givePoints({ player: chicagoCaller, points: -15 })
-          mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_chicago' } })
+          mutate.addEvent({
+            game,
+            event: { actor: chicagoCaller, action: 'lost_chicago', points: -15 },
+          })
           mutate.endRound({ game, roundWinner })
 
           return Results.ROUND_OVER
@@ -137,7 +140,7 @@ export const playCard = publicProcedure
 
               mutate.addEvent({
                 game,
-                event: { actor: chicagoCaller, action: 'lost_chicago' },
+                event: { actor: chicagoCaller, action: 'lost_chicago', points: -15 },
               })
             }
           } else {

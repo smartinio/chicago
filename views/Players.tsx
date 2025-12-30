@@ -21,6 +21,13 @@ const intensify = keyframes`
   90% { transform: translate(-2px, -1px) rotate(-2deg) scale(1.01); }
 `
 
+const zoomInOut = keyframes`
+  0% { transform: scale(0); opacity: 0; }
+  10% { transform: scale(1); opacity: 1; }
+  90% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+`
+
 const PlayerRow = ({ children }: { children: React.ReactNode }) => {
   return (
     <Flex direction="row" justify="space-between" gap={2}>
@@ -64,6 +71,7 @@ const Player = (props: {
   const mutationOptions = { onSuccess: defaultDataHandler }
   const kickPlayerMutation = trpc.kickPlayer.useMutation(mutationOptions)
   const avatarRef = useRef<HTMLDivElement>(null)
+  const [floatingPoints, setFloatingPoints] = useState<number | null>(null)
   const isGameWinner = snapshot?.gamePhase === 'over' && player.score >= 52
 
   const celebratePlayer = useCallback((cb: (x: number, y: number) => void, offset = 0) => {
@@ -82,16 +90,36 @@ const Player = (props: {
     }
   }, [player.id, snapshot?.roundWinnerId])
 
-  const lastScoreEventIdForPlayer = snapshot?.events.find(
-    (event) => event.actorId === player.id && event.action === 'received_points'
+  const lastScoreEventIdForPlayer = snapshot?.events.findLast(
+    (event) =>
+      event.actorId === player.id &&
+      ['received_points', 'won_round', 'lost_chicago'].includes(event.action)
   )?.id
 
   useEffect(() => {
-    const lastScoreEvent = snapshot?.events.find((event) => event.id === lastScoreEventIdForPlayer)
+    if (!snapshot?.events || !lastScoreEventIdForPlayer) return
 
-    if (lastScoreEvent) {
-      celebratePlayer(shootStars)
+    const lastIndex = snapshot.events.findIndex((e) => e.id === lastScoreEventIdForPlayer)
+    const lastEvent = snapshot.events[lastIndex]
+    if (!lastEvent?.data.points) return
+
+    let totalPoints = lastEvent.data.points
+
+    // If received_points is preceded by won_round for the same player, sum them
+    if (lastEvent.action === 'received_points') {
+      const prevEvent = snapshot.events[lastIndex - 1]
+      if (
+        prevEvent?.actorId === player.id &&
+        prevEvent.action === 'won_round' &&
+        prevEvent.data.points
+      ) {
+        totalPoints += prevEvent.data.points
+      }
     }
+
+    setFloatingPoints(totalPoints)
+    const timeout = setTimeout(() => setFloatingPoints(null), 2500)
+    return () => clearTimeout(timeout)
   }, [player.id, lastScoreEventIdForPlayer])
 
   useEffect(() => {
@@ -191,6 +219,10 @@ const Player = (props: {
                 colorScheme="red"
                 onClick={() => kickPlayer(player)}
                 borderRadius="full"
+                minWidth="18px"
+                height="18px"
+                padding="0"
+                fontSize="10px"
               >
                 X
               </Button>
@@ -219,7 +251,7 @@ const Player = (props: {
           </Text>
         </Flex>
 
-        <VStack spacing="2">
+        <VStack spacing="2" alignItems="center">
           <Tag
             size="sm"
             colorScheme={hasHighestScore ? 'blackAlpha' : undefined}
@@ -233,8 +265,21 @@ const Player = (props: {
               WON
             </Tag>
           ) : null}
-          {isMe && !isGameWinner ? <Text fontSize="small">(You)</Text> : null}
-          {shouldShowSpinner && !isMe ? (
+          {floatingPoints !== null ? (
+            <Flex justify="center" width="100%">
+              <Tag
+                size="sm"
+                background={floatingPoints < 0 ? 'red.500' : 'green.500'}
+                color="white"
+                animation={`${zoomInOut} 2.5s ease-out forwards`}
+              >
+                {floatingPoints > 0 ? '+' : ''}
+                {floatingPoints}
+              </Tag>
+            </Flex>
+          ) : isMe && !isGameWinner ? (
+            <Text fontSize="small">(You)</Text>
+          ) : shouldShowSpinner && !isMe ? (
             <Spinner size="sm" speed="1s" color="black" thickness="2px" emptyColor="gray.200" />
           ) : null}
         </VStack>
@@ -337,10 +382,10 @@ const getSlideFadePropsForPlayer = (props: {
 const shootStars = (x: number, y: number) => {
   const defaults: confetti.Options = {
     spread: 360,
-    ticks: 50,
+    ticks: 30,
     gravity: 0,
-    decay: 0.94,
-    startVelocity: 30,
+    decay: 0.85,
+    startVelocity: 20,
     colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
     origin: { x, y },
   }
@@ -349,14 +394,14 @@ const shootStars = (x: number, y: number) => {
     confetti({
       ...defaults,
       particleCount: 40,
-      scalar: 1.2,
+      scalar: 1.2 / 2,
       shapes: ['star'],
     })
 
     confetti({
       ...defaults,
       particleCount: 10,
-      scalar: 0.75,
+      scalar: 0.75 / 2,
       shapes: ['circle'],
     })
   }

@@ -34,7 +34,14 @@ export const getPlayersWithBestHand = (game: Game): BestHand[] => {
 
   const candidates = playerHandValues.filter((p) => p.points === bestValue)
 
-  return tieBreak(candidates)
+  const { winners, cardsCompared } = tieBreak(candidates)
+
+  // For high card hands only, slice cards to show only the ones that mattered for tiebreaking
+  // Other hand types should always show all their hand-making cards
+  return winners.map((w) => ({
+    ...w,
+    cards: w.handType === 'highCard' ? w.cards.slice(0, cardsCompared) : w.cards,
+  }))
 }
 
 const getHand = (game: Game, player: Player): Set<Card> => {
@@ -53,8 +60,10 @@ const getHand = (game: Game, player: Player): Set<Card> => {
   return hand
 }
 
-export const tieBreak = (candidates: BestHand[]): BestHand[] => {
-  if (candidates.length <= 1) return candidates
+export const tieBreak = (
+  candidates: BestHand[]
+): { winners: BestHand[]; cardsCompared: number } => {
+  if (candidates.length <= 1) return { winners: candidates, cardsCompared: 1 }
 
   // Compare cards in the order they're provided by getHandTypeWithCards.
   // Each hand type returns cards in the correct order for comparison:
@@ -80,19 +89,26 @@ export const tieBreak = (candidates: BestHand[]): BestHand[] => {
     }
   })
 
+  let cardsCompared = 0
+
   // Compare the hand-making cards in order (e.g., trips value, then pair value for full house)
   for (let i = 0; i < winners[0].handCardValues.length && winners.length > 1; i++) {
+    cardsCompared++
     const max = Math.max(...winners.map((w) => w.handCardValues[i]))
     winners = winners.filter((w) => w.handCardValues[i] === max)
   }
 
   // If still tied, compare kickers
   for (let i = 0; i < winners[0].kickerValues.length && winners.length > 1; i++) {
+    cardsCompared++
     const max = Math.max(...winners.map((w) => w.kickerValues[i]))
     winners = winners.filter((w) => w.kickerValues[i] === max)
   }
 
-  return winners.map((w) => w.candidate)
+  // Ensure at least 1 card is shown
+  if (cardsCompared === 0) cardsCompared = 1
+
+  return { winners: winners.map((w) => w.candidate), cardsCompared }
 }
 
 export const getPointsForHand = (
@@ -142,8 +158,8 @@ const getHandTypeWithCards = (hand: Set<Card>): { handType: HandType; cards: Car
     return { handType: 'pair', cards: getCardsOfAKind(hand, 2) }
   }
 
-  // No poker hand - return high card (just the highest card)
-  return { handType: 'highCard', cards: cards.slice(0, 1) }
+  // No poker hand - return all cards sorted by value (for tiebreaking)
+  return { handType: 'highCard', cards }
 }
 
 const getCardsOfAKind = (hand: Set<Card>, count: number): Card[] => {
@@ -170,12 +186,8 @@ const getTwoPairCards = (hand: Set<Card>): Card[] => {
 
 const getFullHouseCards = (hand: Set<Card>): Card[] => {
   const cards = Array.from(hand)
-  const trips = cards.filter(
-    (card) => cards.filter((c) => c.value === card.value).length === 3
-  )
-  const pair = cards.filter(
-    (card) => cards.filter((c) => c.value === card.value).length === 2
-  )
+  const trips = cards.filter((card) => cards.filter((c) => c.value === card.value).length === 3)
+  const pair = cards.filter((card) => cards.filter((c) => c.value === card.value).length === 2)
 
   // Return trips first (for tiebreaking), then pair
   return [...trips.sort((a, b) => b.value - a.value), ...pair.sort((a, b) => b.value - a.value)]
@@ -199,7 +211,9 @@ const getStraightCards = (hand: Set<Card>): Card[] => {
 }
 
 const isWheelStraight = (hand: Set<Card>): boolean => {
-  const values = Array.from(hand).map((c) => c.value).sort((a, b) => a - b)
+  const values = Array.from(hand)
+    .map((c) => c.value)
+    .sort((a, b) => a - b)
   return values.join(',') === '2,3,4,5,14'
 }
 
