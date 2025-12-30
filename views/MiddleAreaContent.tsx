@@ -53,7 +53,7 @@ export const MiddleAreaContent = ({
         if (!isMyTurn) {
           return (
             <Text fontSize="sm" opacity={0.7}>
-              {currentPlayerName} is deciding on Chicago... 🚀
+              {currentPlayerName} is deciding on Chicago...
             </Text>
           )
         }
