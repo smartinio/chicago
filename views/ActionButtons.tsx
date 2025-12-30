@@ -126,7 +126,7 @@ export const ActionButtons = ({
   }
 
   // Render asking_chicago phase
-  if (roundPhase === 'asking_chicago' && isMyTurn) {
+  if (gamePhase === 'round' && roundPhase === 'asking_chicago' && isMyTurn) {
     return (
       <HStack spacing="1" justify="center" align="center">
         <Button
@@ -157,7 +157,7 @@ export const ActionButtons = ({
   }
 
   // Render asking_one_open phase
-  if (roundPhase === 'asking_one_open' && isMyTurn && openCard) {
+  if (gamePhase === 'round' && roundPhase === 'asking_one_open' && isMyTurn && openCard) {
     return (
       <HStack spacing="4" justify="center" align="end">
         <Button
@@ -186,7 +186,7 @@ export const ActionButtons = ({
   }
 
   // Render asking_four_of_a_kind phase
-  if (roundPhase === 'asking_four_of_a_kind' && isMyTurn) {
+  if (gamePhase === 'round' && roundPhase === 'asking_four_of_a_kind' && isMyTurn) {
     return (
       <HStack spacing="4" justify="center" align="center">
         <Button
@@ -218,7 +218,7 @@ export const ActionButtons = ({
   }
 
   // Render throwing phase (swap/pass buttons)
-  if (roundPhase === 'throwing' && isMyTurn) {
+  if (gamePhase === 'round' && roundPhase === 'throwing' && isMyTurn) {
     return (
       <HStack spacing="2" justifyContent="center">
         <Button
@@ -248,7 +248,7 @@ export const ActionButtons = ({
   }
 
   // Render tricking phase (play button)
-  if (roundPhase === 'tricking' && isMyTurn && selectedCards.length > 0) {
+  if (gamePhase === 'round' && roundPhase === 'tricking' && isMyTurn && selectedCards.length > 0) {
     return (
       <Box textAlign="center">
         <Button

@@ -56,15 +56,40 @@ const getHand = (game: Game, player: Player): Set<Card> => {
 export const tieBreak = (candidates: BestHand[]): BestHand[] => {
   if (candidates.length <= 1) return candidates
 
-  // Use the full 5-card hand for tiebreaking (not player.cards which may be empty after tricks)
-  let winners = [...candidates].map((c) => ({
-    candidate: c,
-    sortedValues: c.fullHand.map((card) => card.value).sort((a, b) => b - a),
-  }))
+  // Compare cards in the order they're provided by getHandTypeWithCards.
+  // Each hand type returns cards in the correct order for comparison:
+  // - Pair: [pair cards]
+  // - Two pair: [high pair, low pair] sorted by value
+  // - Three of a kind: [trips]
+  // - Full house: [trips, pair]
+  // - Four of a kind: [quads]
+  // - Straights/flushes: all 5 cards sorted by value (wheel straights have Ace as 1)
+  let winners = [...candidates].map((c) => {
+    // Use card values in the order provided (don't re-sort!)
+    // For straights, getStraightCards already handles wheel ordering
+    const handCardValues = c.cards.map((card) => card.value)
+    const kickerValues = c.fullHand
+      .filter((card) => !c.cards.some((hc) => hc.suit === card.suit && hc.value === card.value))
+      .map((card) => card.value)
+      .sort((a, b) => b - a) // Kickers are still sorted high-to-low
 
-  for (let i = 0; i < 5 && winners.length > 1; i++) {
-    const max = Math.max(...winners.map((w) => w.sortedValues[i]))
-    winners = winners.filter((w) => w.sortedValues[i] === max)
+    return {
+      candidate: c,
+      handCardValues,
+      kickerValues,
+    }
+  })
+
+  // Compare the hand-making cards in order (e.g., trips value, then pair value for full house)
+  for (let i = 0; i < winners[0].handCardValues.length && winners.length > 1; i++) {
+    const max = Math.max(...winners.map((w) => w.handCardValues[i]))
+    winners = winners.filter((w) => w.handCardValues[i] === max)
+  }
+
+  // If still tied, compare kickers
+  for (let i = 0; i < winners[0].kickerValues.length && winners.length > 1; i++) {
+    const max = Math.max(...winners.map((w) => w.kickerValues[i]))
+    winners = winners.filter((w) => w.kickerValues[i] === max)
   }
 
   return winners.map((w) => w.candidate)
@@ -91,16 +116,16 @@ const getHandTypeWithCards = (hand: Set<Card>): { handType: HandType; cards: Car
     return { handType: 'royalStraightFlush', cards }
   }
   if (isStraightFlush(hand)) {
-    return { handType: 'straightFlush', cards }
+    return { handType: 'straightFlush', cards: getStraightCards(hand) }
   }
   if (isFullHouse(hand)) {
-    return { handType: 'fullHouse', cards }
+    return { handType: 'fullHouse', cards: getFullHouseCards(hand) }
   }
   if (isFlush(hand)) {
     return { handType: 'flush', cards }
   }
   if (isStraight(hand)) {
-    return { handType: 'straight', cards }
+    return { handType: 'straight', cards: getStraightCards(hand) }
   }
 
   // For hands where only some cards matter
@@ -141,6 +166,41 @@ const getTwoPairCards = (hand: Set<Card>): Card[] => {
   }
 
   return cards.filter((c) => pairValues.has(c.value)).sort((a, b) => b.value - a.value)
+}
+
+const getFullHouseCards = (hand: Set<Card>): Card[] => {
+  const cards = Array.from(hand)
+  const trips = cards.filter(
+    (card) => cards.filter((c) => c.value === card.value).length === 3
+  )
+  const pair = cards.filter(
+    (card) => cards.filter((c) => c.value === card.value).length === 2
+  )
+
+  // Return trips first (for tiebreaking), then pair
+  return [...trips.sort((a, b) => b.value - a.value), ...pair.sort((a, b) => b.value - a.value)]
+}
+
+const getStraightCards = (hand: Set<Card>): Card[] => {
+  const cards = Array.from(hand).sort((a, b) => b.value - a.value)
+  const isWheel = isWheelStraight(hand)
+
+  if (isWheel) {
+    // For wheel straight (A-2-3-4-5), return cards with 5 as high card
+    // Sort so that 5-4-3-2-A for proper tiebreaking (5-high, not Ace-high)
+    return cards.sort((a, b) => {
+      const aVal = a.value === 14 ? 1 : a.value
+      const bVal = b.value === 14 ? 1 : b.value
+      return bVal - aVal
+    })
+  }
+
+  return cards
+}
+
+const isWheelStraight = (hand: Set<Card>): boolean => {
+  const values = Array.from(hand).map((c) => c.value).sort((a, b) => a - b)
+  return values.join(',') === '2,3,4,5,14'
 }
 
 const isRoyalStraightFlush = (hand: Set<Card>): boolean => {

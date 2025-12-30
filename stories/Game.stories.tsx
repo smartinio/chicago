@@ -338,3 +338,31 @@ export const GameOver: Story = {
     }),
   },
 }
+
+export const NewLobby: Story = {
+  name: 'New Lobby (Waiting for Players)',
+  args: {
+    snapshot: createBaseSnapshot({
+      gamePhase: 'new',
+      roundPhase: 'throwing', // This shouldn't show Pass button since gamePhase is 'new'
+      isMyTurn: true,
+      canStart: false,
+      myCards: [],
+      players: [createPlayer('player-1', 'You', 0, [])],
+    }),
+  },
+}
+
+export const NewLobbyReadyToStart: Story = {
+  name: 'New Lobby (Ready to Start)',
+  args: {
+    snapshot: createBaseSnapshot({
+      gamePhase: 'new',
+      roundPhase: 'throwing',
+      isMyTurn: true,
+      canStart: true, // Owner can start
+      myCards: [],
+      players: [createPlayer('player-1', 'You', 0, []), createPlayer('player-2', 'Alice', 0, [])],
+    }),
+  },
+}

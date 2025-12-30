@@ -2581,6 +2581,104 @@ describe('Chicago: Make It Rain', () => {
 
     expect(game.round.phase).toBe('over')
   })
+
+  test('Make it rain by non-Chicago-caller kills Chicago and deducts 15 points', async () => {
+    // P2 calls Chicago and leads with Jack of clubs
+    // P3 has A, K, Q of clubs and all remaining clubs - makes it rain and kills Chicago
+    // This reproduces the bug: Stronk made it rain with ♣️Q, ♣️A killing Harvey's Chicago
+    const killChicagoHands: HandFixture = {
+      player1: [
+        card('hearts:2'), // No clubs - void
+        card('hearts:3'),
+        card('hearts:4'),
+        card('hearts:5'),
+        card('hearts:6'),
+      ],
+      player2: [
+        card('clubs:11'), // Jack of clubs - leads with this (Chicago caller)
+        card('spades:2'),
+        card('spades:3'),
+        card('spades:4'),
+        card('spades:5'),
+      ],
+      player3: [
+        card('clubs:14'), // Ace of clubs - unbeatable
+        card('clubs:13'), // King of clubs
+        card('clubs:12'), // Queen of clubs
+        card('clubs:10'),
+        card('clubs:9'), // Has ALL remaining high clubs
+      ],
+      player4: [
+        card('diamonds:2'), // No clubs - void
+        card('diamonds:3'),
+        card('diamonds:4'),
+        card('diamonds:5'),
+        card('diamonds:6'),
+      ],
+    }
+    mockDealCards.mockImplementation(createMockDealCards(killChicagoHands))
+
+    const { game } = await setupGame(caller, 4)
+    await startRound(caller, game)
+    await skipAllThrows(caller, game)
+
+    const player2 = game.players[1]
+    const player3 = game.players[2]
+
+    // P2 calls Chicago
+    while (game.currentPlayer.id !== player2.id && game.round.phase === 'asking_chicago') {
+      await caller.answerChicago({
+        gameId: game.id,
+        playerSecret: game.currentPlayer.secret,
+        takeChicago: false,
+      })
+    }
+
+    const scoreBefore = player2.score
+
+    await caller.answerChicago({
+      gameId: game.id,
+      playerSecret: player2.secret,
+      takeChicago: true,
+    })
+
+    expect(game.round.chicagoCaller?.id).toBe(player2.id)
+    expect(game.round.phase).toBe('tricking')
+
+    // P2 leads with Jack of clubs
+    const jackOfClubs = Array.from(player2.cards).find((c) => c.value === 11 && c.suit === 'clubs')!
+    await caller.playCard({
+      gameId: game.id,
+      playerSecret: player2.secret,
+      card: { id: jackOfClubs.id },
+    })
+
+    // P3 plays Ace of clubs - has all highest clubs remaining, makes it rain!
+    expect(game.currentPlayer.id).toBe(player3.id)
+    const aceOfClubs = Array.from(player3.cards).find((c) => c.value === 14 && c.suit === 'clubs')!
+    const result = await caller.playCard({
+      gameId: game.id,
+      playerSecret: player3.secret,
+      card: { id: aceOfClubs.id },
+    })
+
+    // Chicago should be killed - round ends immediately
+    expect(result).toBe(Results.ROUND_OVER)
+    expect(game.round.phase).toBe('over')
+
+    // P2 loses 15 points for failed Chicago
+    expect(player2.score).toBe(scoreBefore - 15)
+
+    // Check the lost_chicago event
+    const lostChicagoEvent = game.events.find((e) => e.action === 'lost_chicago')
+    expect(lostChicagoEvent).toBeDefined()
+    expect(lostChicagoEvent?.actor).toBe(player2)
+
+    // Check the made_it_rain event
+    const madeItRainEvent = game.events.find((e) => e.action === 'made_it_rain')
+    expect(madeItRainEvent).toBeDefined()
+    expect(madeItRainEvent?.actor).toBe(player3)
+  })
 })
 
 // ============================================================================

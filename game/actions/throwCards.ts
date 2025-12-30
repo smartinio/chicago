@@ -105,6 +105,7 @@ export const moveToNextPhase = (params: { game: Game }) => {
     } else {
       mutate.setCurrentPlayer({ game, player: playerAfterDealer })
       mutate.setRoundPhase({ game, phase: 'tricking' })
+      mutate.addEvent({ game, event: { actor: 'server', action: 'tricking_phase_started' } })
     }
   }
 }

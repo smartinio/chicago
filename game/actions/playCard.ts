@@ -75,13 +75,17 @@ export const playCard = publicProcedure
       const { chicagoCaller } = game.round
       const { winning } = decideWinningPlayedCard({ round: game.round })
 
-      // If makeItRain occurred, we already know the player wins all tricks
-      // Skip the "lost a trick" check and go directly to best-hand evaluation
-      if (chicagoCaller && !makesItRain) {
-        if (winning.player.id !== chicagoCaller.id) {
+      // Check if Chicago caller lost a trick (either normally or via someone else making it rain)
+      if (chicagoCaller) {
+        const chicagoKilled = makesItRain
+          ? player.id !== chicagoCaller.id // Someone else made it rain - Chicago is killed
+          : winning.player.id !== chicagoCaller.id // Someone else won the trick normally
+
+        if (chicagoKilled) {
+          const roundWinner = makesItRain ? player : winning.player
           mutate.givePoints({ player: chicagoCaller, points: -15 })
           mutate.addEvent({ game, event: { actor: chicagoCaller, action: 'lost_chicago' } })
-          mutate.endRound({ game, roundWinner: winning.player })
+          mutate.endRound({ game, roundWinner })
 
           return Results.ROUND_OVER
         }

@@ -66,33 +66,38 @@ const Player = (props: {
   const avatarRef = useRef<HTMLDivElement>(null)
   const isGameWinner = snapshot?.gamePhase === 'over' && player.score >= 52
 
-  const celebratePlayer = useCallback((offset = 0) => {
+  const celebratePlayer = useCallback((cb: (x: number, y: number) => void, offset = 0) => {
     const position = avatarRef.current?.getBoundingClientRect()
     if (position) {
       const { clientWidth, clientHeight } = document.documentElement
       const x = (position.x + 35 + offset) / clientWidth
       const y = (position.y + 110 + offset) / clientHeight
-      confetti({
-        origin: { x, y },
-        ticks: 75,
-        scalar: 0.5,
-        gravity: 0.8,
-        startVelocity: 22,
-        decay: 0.9,
-      })
+      cb(x, y)
     }
   }, [])
 
   useEffect(() => {
     if (player.id === snapshot?.roundWinnerId) {
-      celebratePlayer()
+      celebratePlayer(celebrate)
     }
   }, [player.id, snapshot?.roundWinnerId])
+
+  const lastScoreEventIdForPlayer = snapshot?.events.find(
+    (event) => event.actorId === player.id && event.action === 'received_points'
+  )?.id
+
+  useEffect(() => {
+    const lastScoreEvent = snapshot?.events.find((event) => event.id === lastScoreEventIdForPlayer)
+
+    if (lastScoreEvent) {
+      celebratePlayer(shootStars)
+    }
+  }, [player.id, lastScoreEventIdForPlayer])
 
   useEffect(() => {
     if (!isGameWinner) return
     const offset = Math.ceil(Math.random() * 30) - 15
-    const interval = setInterval(() => celebratePlayer(offset), 1500)
+    const interval = setInterval(() => celebratePlayer(celebrate, offset), 1500)
     return () => clearInterval(interval)
   }, [celebratePlayer, isGameWinner])
 
@@ -327,4 +332,77 @@ const getSlideFadePropsForPlayer = (props: {
     offsetX,
     in: true,
   }
+}
+
+const shootStars = (x: number, y: number) => {
+  const defaults: confetti.Options = {
+    spread: 360,
+    ticks: 50,
+    gravity: 0,
+    decay: 0.94,
+    startVelocity: 30,
+    colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
+    origin: { x, y },
+  }
+
+  const shoot = () => {
+    confetti({
+      ...defaults,
+      particleCount: 40,
+      scalar: 1.2,
+      shapes: ['star'],
+    })
+
+    confetti({
+      ...defaults,
+      particleCount: 10,
+      scalar: 0.75,
+      shapes: ['circle'],
+    })
+  }
+
+  setTimeout(shoot, 0)
+  setTimeout(shoot, 100)
+  setTimeout(shoot, 200)
+}
+
+const celebrate = (x: number, y: number) => {
+  const count = 200
+  const defaults = {
+    origin: { x, y },
+  }
+
+  const fire = (particleRatio: number, opts: confetti.Options) => {
+    confetti({
+      ...defaults,
+      ...opts,
+      particleCount: Math.floor(count * particleRatio),
+      spread: (opts.spread ?? 1) * 0.5,
+      scalar: (opts.scalar ?? 1) * 0.6,
+      ticks: 105,
+    })
+  }
+
+  fire(0.25, {
+    spread: 26,
+    startVelocity: 55,
+  })
+  fire(0.2, {
+    spread: 60,
+  })
+  fire(0.35, {
+    spread: 100,
+    decay: 0.91,
+    scalar: 0.8,
+  })
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 25,
+    decay: 0.92,
+    scalar: 1.2,
+  })
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 45,
+  })
 }
