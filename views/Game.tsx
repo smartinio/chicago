@@ -12,7 +12,6 @@ import { MiddleArea } from '#views/MiddleArea'
 import { ActionButtons } from '#views/ActionButtons'
 import { memo, useEffect, useRef, useState } from 'react'
 import { cards } from '#utils/card'
-import { useDesktopScale } from '#utils/useDesktopScale'
 import Image from 'next/image'
 
 // Position of action buttons above the hand (in pixels from bottom)
@@ -30,9 +29,6 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
   const { snapshot } = useSnapshot()
   const keepAlive = useRef(false)
   const [selectedCards, setSelectedCards] = useState<Card[]>([])
-
-  // Calculate optimal zoom scale for desktop to fill vertical space
-  const scale = 1 // useDesktopScale()
 
   // Start every render by assuming failure
   // Will set to true further down
@@ -176,50 +172,39 @@ export const Game = ({ gameId, playerId, playerSecret }: Props) => {
 
   return (
     <LightMode>
-      {/* Outer wrapper that applies zoom scaling for desktop */}
-      <Box position="fixed" top={0} left={0} width="100vw" height="100vh" overflow="hidden">
-        {/* Scaling wrapper - transform creates containing block for fixed descendants */}
+      <Flex
+        bgGradient="linear(to-b, gray.200, gray.300)"
+        h="100vh"
+        position="fixed"
+        width="100%"
+        color="gray.800"
+      >
+        <PreloadedCards />
+        <Container marginTop="20">
+          <TopControls />
+          <Players>
+            <MiddleArea />
+          </Players>
+        </Container>
+        {/* Action buttons positioned above the hand */}
         <Box
-          width={`${100 / scale}vw`}
-          height={`${100 / scale}vh`}
-          transformOrigin="top left"
-          transform={`scale(${scale})`}
+          position="fixed"
+          bottom={ACTION_BUTTONS_BOTTOM}
+          left={0}
+          right={0}
+          display="flex"
+          justifyContent="center"
+          zIndex={10}
+          paddingX="4"
         >
-          <Flex
-            bgGradient="linear(to-b, gray.200, gray.300)"
-            h="100%"
-            width="100%"
-            color="gray.800"
-            position="relative"
-          >
-            <PreloadedCards />
-            <Container marginTop="20">
-              <TopControls />
-              <Players>
-                <MiddleArea />
-              </Players>
-            </Container>
-            {/* Action buttons positioned above the hand */}
-            <Box
-              position="absolute"
-              bottom={ACTION_BUTTONS_BOTTOM}
-              left={0}
-              right={0}
-              display="flex"
-              justifyContent="center"
-              zIndex={10}
-              paddingX="4"
-            >
-              <ActionButtons
-                selectedCards={selectedCards}
-                setSelectedCards={setSelectedCards}
-                canPlay={canPlay}
-              />
-            </Box>
-          </Flex>
-          <MyHand selectedCards={selectedCards} setSelectedCards={setSelectedCards} />
+          <ActionButtons
+            selectedCards={selectedCards}
+            setSelectedCards={setSelectedCards}
+            canPlay={canPlay}
+          />
         </Box>
-      </Box>
+        <MyHand selectedCards={selectedCards} setSelectedCards={setSelectedCards} />
+      </Flex>
     </LightMode>
   )
 }
