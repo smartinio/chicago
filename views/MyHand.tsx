@@ -35,10 +35,10 @@ export const MyHand = ({ selectedCards, setSelectedCards }: MyHandProps) => {
   const playCardMutation = trpc.playCard.useMutation(mutationOptions)
 
   const mouseSensor = useSensor(MouseSensor, {
-    activationConstraint: { distance: 1, tolerance: 5 },
+    activationConstraint: { distance: 1 },
   })
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { distance: 1, tolerance: 5 },
+    activationConstraint: { distance: 1 },
   })
   const sensors = useSensors(touchSensor, mouseSensor)
 
