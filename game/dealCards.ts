@@ -1,10 +1,11 @@
+import { randomInt } from 'node:crypto'
 import { CARDS } from './constants'
 import { Card, Game } from './types'
 import { getNext } from './utils'
 
 const shuffleInPlace = (deck: Card[]) => {
   for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = randomInt(i + 1)
     ;[deck[i], deck[j]] = [deck[j], deck[i]]
   }
 }
