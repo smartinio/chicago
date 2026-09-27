@@ -318,6 +318,7 @@ export const createPlayer = ({
     cards: new Set(),
     score: 0,
     takenChicago: false,
+    chicagoWins: 0,
     ...overrides,
   }
 }

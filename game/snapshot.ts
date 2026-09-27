@@ -26,6 +26,7 @@ export type PlayerSnapshot = {
   score: number
   playedCards: Card[]
   takenChicago: boolean
+  chicagoWins: number
 }
 
 export type Snapshot = {
@@ -68,6 +69,7 @@ const createPlayerSnapshot = (player: Player, game: Game): PlayerSnapshot => {
       trick.playedCards.filter((p) => p.player.id === player.id).map((p) => p.card)
     ),
     takenChicago: player.takenChicago,
+    chicagoWins: player.chicagoWins,
   }
 }
 

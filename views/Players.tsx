@@ -261,7 +261,31 @@ const Player = (props: {
             background={hasHighestScore ? 'black' : undefined}
             color={hasHighestScore ? 'white' : undefined}
           >
-            {player.score}p{player.takenChicago ? ' 🚀' : ''}
+            {player.score}p
+            {player.chicagoWins > 0 ? (
+              <Box as="span" position="relative" display="inline-block" ml={1} lineHeight="1">
+                🚀
+                {player.chicagoWins > 1 ? (
+                  <Box
+                    as="span"
+                    position="absolute"
+                    top="-6px"
+                    right="-8px"
+                    minWidth="12px"
+                    height="12px"
+                    borderRadius="full"
+                    background="red.500"
+                    color="white"
+                    fontSize="9px"
+                    fontWeight="bold"
+                    lineHeight="12px"
+                    textAlign="center"
+                  >
+                    {player.chicagoWins}
+                  </Box>
+                ) : null}
+              </Box>
+            ) : null}
           </Tag>
           {isGameWinner ? (
             <Tag size="sm" background="green.500" color="white">

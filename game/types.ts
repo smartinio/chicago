@@ -6,6 +6,7 @@ export type Player = {
   readonly secret: string
   readonly cards: Set<Card>
   takenChicago: boolean
+  chicagoWins: number
   name: string
   score: number
 }

@@ -862,6 +862,8 @@ describe('Chicago: Chicago Declaration', () => {
       await skipAllThrows(caller, game)
 
       const player2 = game.players[1]
+      player2.takenChicago = true
+      player2.chicagoWins = 1
 
       // Navigate to player 2 in Chicago asking
       while (game.currentPlayer.id !== player2.id && game.round.phase === 'asking_chicago') {
@@ -915,6 +917,8 @@ describe('Chicago: Chicago Declaration', () => {
 
       expect(player2.score).toBe(initialScore + 15)
       expect(player2.takenChicago).toBe(true)
+      expect(player2.chicagoWins).toBe(2)
+      expect(createSnapshot({ game, player: player2 }).players[1].chicagoWins).toBe(2)
     })
 
     test('Chicago fails if caller wins all tricks but does not have best hand (chicagoRequiresBestHand)', async () => {
@@ -1058,6 +1062,7 @@ describe('Chicago: Chicago Declaration', () => {
       expect(game.round.phase).toBe('over')
       expect(player2.score).toBe(initialScore - 15)
       expect(player2.takenChicago).toBe(false)
+      expect(player2.chicagoWins).toBe(0)
     })
 
     test('Chicago succeeds when caller wins all tricks and nobody has a poker hand (highCard tiebreak)', async () => {
@@ -2196,6 +2201,7 @@ describe('Chicago: Victory Conditions', () => {
 
     game.players[0].score = 55
     game.players[0].takenChicago = true
+    game.players[0].chicagoWins = 2
 
     await startRound(caller, game)
     await skipAllThrows(caller, game)
@@ -2242,6 +2248,7 @@ describe('Chicago: Victory Conditions', () => {
     // All players should have takenChicago reset
     for (const player of game.players) {
       expect(player.takenChicago).toBe(false)
+      expect(player.chicagoWins).toBe(0)
       expect(player.score).toBe(0)
     }
   })

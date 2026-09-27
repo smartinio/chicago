@@ -9,6 +9,7 @@ export const stubPlayer = (overrides?: Partial<Player>): Player => {
     name: 'player-name',
     score: 0,
     takenChicago: false,
+    chicagoWins: 0,
     ...overrides,
   }
 }

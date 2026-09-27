@@ -81,6 +81,7 @@ const createPlayer = (
   score,
   playedCards,
   takenChicago,
+  chicagoWins: Number(takenChicago),
 })
 
 // Base snapshot with sensible defaults
@@ -334,6 +335,20 @@ export const GameOver: Story = {
         createPlayer('player-2', 'Alice', 38, []),
         createPlayer('player-3', 'Bob', 45, []),
         createPlayer('player-4', 'Charlie', 29, []),
+      ],
+    }),
+  },
+}
+
+export const ChicagoWins: Story = {
+  name: 'Chicago Wins (1–4)',
+  args: {
+    snapshot: createBaseSnapshot({
+      players: [
+        { ...createPlayer('player-1', 'You', 18, [], true), chicagoWins: 1 },
+        { ...createPlayer('player-2', 'Alice', 24, [], true), chicagoWins: 2 },
+        { ...createPlayer('player-3', 'Bob', 31, [], true), chicagoWins: 3 },
+        { ...createPlayer('player-4', 'Charlie', 37, [], true), chicagoWins: 4 },
       ],
     }),
   },

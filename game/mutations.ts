@@ -100,6 +100,7 @@ export const mutate = {
 
   setTakenChicago: (params: { player: Player }) => {
     params.player.takenChicago = true
+    params.player.chicagoWins += 1
   },
 
   getNextThrowEligiblePlayerAfter: (params: { game: Game; afterPlayer: Player }) => {
@@ -234,6 +235,7 @@ export const mutate = {
       player.cards.clear()
       player.score = 0
       player.takenChicago = false
+      player.chicagoWins = 0
     }
   },
 
