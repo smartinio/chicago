@@ -92,7 +92,9 @@ export const startNewRound = publicProcedure
         },
       })
 
-      return Results.STARTED_ROUND
+      const royalStraightFlushWon = mutate.finishForRoyalStraightFlush({ game })
+
+      return royalStraightFlushWon ? Results.GAME_OVER : Results.STARTED_ROUND
     })()
 
     updateClients(game)

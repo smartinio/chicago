@@ -145,7 +145,6 @@ When a player has four of a kind:
 
 - [ ] Awards 52 points immediately
 - [ ] **Should end the game immediately** (winner declared)
-- [ ] ⚠️ _Note: Immediate game end not yet implemented_
 
 ---
 

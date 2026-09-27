@@ -1,6 +1,6 @@
 import { dealCards } from '#game/dealCards'
 import { Card, PlayedCard, Trick, Game, Player, Round, GameEvent, Results } from '#game/types'
-import { createTrick, getPlayerNextTo } from '#game/utils'
+import { createTrick, getPlayerNextTo, getPointsForHand } from '#game/utils'
 import { destroyGameAsOwner } from './store'
 import { last } from '#utils/last'
 import { v7 as uuid } from 'uuid'
@@ -27,6 +27,50 @@ export const mutate = {
 
   finishGame: (params: { game: Game }) => {
     params.game.phase = 'over'
+  },
+
+  finishForRoyalStraightFlush: (params: { game: Game }) => {
+    const { game } = params
+    const winner = game.players.find(
+      (player) => getPointsForHand(game, player.cards).handType === 'royalStraightFlush'
+    )
+
+    if (!winner) {
+      return false
+    }
+
+    const hands = game.players.map((player) => Array.from(player.cards))
+
+    for (let index = 0; index < 5; index++) {
+      game.round.tricks.push(
+        createTrick({
+          playedCards: game.players.map((player, playerIndex) => ({
+            player,
+            card: hands[playerIndex][index],
+          })),
+        })
+      )
+    }
+
+    for (const player of game.players) {
+      player.cards.clear()
+    }
+
+    const points = game.rules.handPoints.royalStraightFlush
+
+    mutate.givePoints({ player: winner, points })
+    mutate.addEvent({
+      game,
+      event: { actor: winner, action: 'received_points', points, handType: 'royalStraightFlush' },
+    })
+    mutate.addEvent({ game, event: { actor: winner, action: 'won_game' } })
+
+    game.round.winner = winner
+    game.round.phase = 'over'
+
+    mutate.finishGame({ game })
+
+    return true
   },
 
   endRound: (params: { game: Game; roundWinner: Player }) => {

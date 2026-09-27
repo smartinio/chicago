@@ -73,6 +73,10 @@ export const throwCards = publicProcedure
 
       mutate.addEvent({ game, event: { actor: player, action: 'threw_cards', count } })
 
+      if (mutate.finishForRoyalStraightFlush({ game })) {
+        return Results.GAME_OVER
+      }
+
       const cycle = mutate.updateThrowCycle({ game, player })
       handlePostThrow({ game, player, cycle })
 

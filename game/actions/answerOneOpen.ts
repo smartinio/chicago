@@ -60,6 +60,10 @@ export const answerOneOpen = publicProcedure
         },
       })
 
+      if (mutate.finishForRoyalStraightFlush({ game })) {
+        return Results.GAME_OVER
+      }
+
       const cycle = mutate.updateThrowCycle({ game, player })
 
       handlePostThrow({ game, player, cycle })

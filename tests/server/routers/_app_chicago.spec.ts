@@ -12,6 +12,7 @@ import { dealCards } from '#game/dealCards'
 import { createCallerFactory } from '#server/trpc'
 import { card, createMockDealCards, defaultHands, HandFixture } from './chicago-fixtures'
 import { CARDS_BY_ID } from '#game/constants'
+import { createSnapshot } from '#game/snapshot'
 
 // Mock dealCards to control card distribution
 const mockDealCards = dealCards as jest.Mock
@@ -301,6 +302,26 @@ describe('Chicago: Game Setup', () => {
 
       expect(game.currentPlayer.name).toBe('P2')
     })
+
+    test('Royal straight flush on the deal wins and reveals every hand', async () => {
+      const { game } = await setupGame(caller, 2)
+      const royal = [10, 11, 12, 13, 14].map((value) => card(`spades:${value}` as keyof typeof CARDS_BY_ID))
+      const result = await startRound(caller, game, { ...defaultHands, player1: royal })
+
+      const snapshot = createSnapshot({ game, player: game.players[1] })
+      expect(result).toBe(Results.GAME_OVER)
+      expect(game.phase).toBe('over')
+      expect(game.round.phase).toBe('over')
+      expect(game.round.winner).toBe(game.players[0])
+      expect(game.players[0].score).toBe(52)
+      expect(game.round.tricks).toHaveLength(5)
+      expect(snapshot.players.map((player) => player.playedCards)).toEqual([
+        royal,
+        defaultHands.player2,
+      ])
+      expect(game.players.every((player) => player.cards.size === 0)).toBe(true)
+      expect(game.events.at(-1)?.action).toBe('won_game')
+    })
   })
 })
 
@@ -310,6 +331,16 @@ describe('Chicago: Game Setup', () => {
 
 describe('Chicago: Throwing Phase', () => {
   const caller = createCaller()
+  const almostRoyalHands: HandFixture = {
+    ...defaultHands,
+    player2: [
+      card('hearts:10'),
+      card('hearts:11'),
+      card('hearts:12'),
+      card('hearts:13'),
+      card('diamonds:2'),
+    ],
+  }
 
   beforeEach(() => {
     mockDealCards.mockImplementation(createMockDealCards(defaultHands))
@@ -332,6 +363,52 @@ describe('Chicago: Throwing Phase', () => {
 
       expect(result).toBe(Results.THREW_CARDS)
       expect(player.cards.size).toBe(5) // Still has 5 cards after exchange
+    })
+
+    test('Completing a royal straight flush by exchange wins immediately', async () => {
+      const { game } = await setupGame(caller, 2)
+      await startRound(caller, game, almostRoyalHands)
+      const player = game.currentPlayer
+      const ace = card('hearts:14')
+      game.deck = [ace, ...game.deck.filter((card) => card.id !== ace.id)]
+
+      const result = await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player.secret,
+        cards: [{ id: 'diamonds:2' }],
+        oneOpen: false,
+      })
+
+      expect(result).toBe(Results.GAME_OVER)
+      expect(game.phase).toBe('over')
+      expect(game.round.winner).toBe(player)
+      expect(createSnapshot({ game, player: game.players[0] }).players[1].playedCards).toContain(ace)
+    })
+
+    test('Completing a royal straight flush with one open wins immediately', async () => {
+      const { game } = await setupGame(caller, 2)
+      game.rules.numberOfThrows = 1
+      await startRound(caller, game, almostRoyalHands)
+      const player = game.currentPlayer
+      const ace = card('hearts:14')
+      game.deck = [ace, ...game.deck.filter((card) => card.id !== ace.id)]
+
+      await caller.throwCards({
+        gameId: game.id,
+        playerSecret: player.secret,
+        cards: [{ id: 'diamonds:2' }],
+        oneOpen: true,
+      })
+      const result = await caller.answerOneOpen({
+        gameId: game.id,
+        playerSecret: player.secret,
+        acceptOpen: true,
+      })
+
+      expect(result).toBe(Results.GAME_OVER)
+      expect(game.phase).toBe('over')
+      expect(game.round.openCard).toBeUndefined()
+      expect(game.round.winner).toBe(player)
     })
 
     test('Player can skip throwing (exchange 0 cards)', async () => {
@@ -747,21 +824,21 @@ describe('Chicago: Chicago Declaration', () => {
 
   describe('Chicago success', () => {
     test('Winning all 5 tricks gives +15 points', async () => {
-      // P2 has A, K, Q, J, 10 of spades - guaranteed to win all tricks
+      // P2 has the top three spades plus two off-suit aces - guaranteed to win all tricks
       const chicagoWinnable: HandFixture = {
         player1: [
           card('clubs:2'),
           card('hearts:3'),
           card('diamonds:4'),
           card('clubs:5'),
-          card('hearts:6'),
+          card('hearts:7'),
         ],
         player2: [
           card('spades:14'),
           card('spades:13'),
           card('spades:12'),
-          card('spades:11'),
-          card('spades:10'),
+          card('clubs:14'),
+          card('hearts:14'),
         ],
         player3: [
           card('clubs:7'),
@@ -805,7 +882,7 @@ describe('Chicago: Chicago Declaration', () => {
 
       const initialScore = player2.score
 
-      // Play all 5 tricks - Player 2 leads spades each time and wins all
+      // Play all 5 tricks - Player 2 leads unbeatable cards and wins all
       for (let trick = 0; trick < 5; trick++) {
         for (let i = 0; i < 4; i++) {
           const currentPlayer = game.currentPlayer
@@ -2242,11 +2319,9 @@ describe('Chicago: Player Management', () => {
 describe('Chicago: Make It Rain', () => {
   const caller = createCaller()
 
-  test('Player with flush triggers make it rain when they have all cards of that suit', async () => {
-    // P2 has all spades (A, K, Q, J, 10), no one else has spades
-    // Since P2 has ALL the spades, they're guaranteed to win immediately on first play
-    // No unaccounted spades exist that could beat them
-    const flushHands: HandFixture = {
+  test('Player with five unbeatable cards triggers make it rain', async () => {
+    // P2 has the top three spades and two off-suit aces: every card is unbeatable
+    const unbeatableHands: HandFixture = {
       player1: [
         card('clubs:2'),
         card('hearts:3'),
@@ -2258,8 +2333,8 @@ describe('Chicago: Make It Rain', () => {
         card('spades:14'),
         card('spades:13'),
         card('spades:12'),
-        card('spades:11'),
-        card('spades:10'),
+        card('clubs:14'),
+        card('hearts:14'),
       ],
       player3: [
         card('clubs:7'),
@@ -2276,7 +2351,7 @@ describe('Chicago: Make It Rain', () => {
         card('clubs:4'),
       ],
     }
-    mockDealCards.mockImplementation(createMockDealCards(flushHands))
+    mockDealCards.mockImplementation(createMockDealCards(unbeatableHands))
 
     const { game } = await setupGame(caller, 4)
     await startRound(caller, game)
@@ -2289,7 +2364,7 @@ describe('Chicago: Make It Rain', () => {
     expect(game.currentPlayer.id).toBe(player2.id)
 
     // P2 leads with Ace of spades
-    // Since P2 has ALL spades (no unaccounted spades exist), make it rain triggers immediately
+    // P2 can win every remaining trick, so make it rain triggers immediately
     const aceOfSpades = Array.from(player2.cards).find((c) => c.value === 14)!
     const result = await caller.playCard({
       gameId: game.id,
@@ -2309,11 +2384,10 @@ describe('Chicago: Make It Rain', () => {
     expect(madeItRainEvent?.actor).toBe(player2)
   })
 
-  test('Make it rain triggers when player has all highest remaining cards in their suit', async () => {
-    // P2 has all clubs from 10-14 (A, K, Q, J, 10)
-    // Since they have ALL the clubs and the highest ones, make it rain triggers
+  test('Make it rain triggers with unbeatable cards across suits', async () => {
+    // P2 has the highest three clubs and two off-suit aces
     // (No four of a kind to avoid asking_four_of_a_kind phase)
-    const allHighClubsHands: HandFixture = {
+    const unbeatableHands: HandFixture = {
       player1: [
         card('hearts:2'),
         card('hearts:3'),
@@ -2325,8 +2399,8 @@ describe('Chicago: Make It Rain', () => {
         card('clubs:14'), // Ace of clubs
         card('clubs:13'), // King of clubs
         card('clubs:12'), // Queen of clubs
-        card('clubs:11'), // Jack of clubs
-        card('clubs:10'), // 10 of clubs
+        card('spades:14'),
+        card('diamonds:14'),
       ],
       player3: [
         card('spades:2'),
@@ -2343,7 +2417,7 @@ describe('Chicago: Make It Rain', () => {
         card('diamonds:6'),
       ],
     }
-    mockDealCards.mockImplementation(createMockDealCards(allHighClubsHands))
+    mockDealCards.mockImplementation(createMockDealCards(unbeatableHands))
 
     const { game } = await setupGame(caller, 4)
     await startRound(caller, game)
@@ -2357,7 +2431,7 @@ describe('Chicago: Make It Rain', () => {
     expect(game.round.phase).toBe('tricking')
 
     // P2 leads with Ace of clubs
-    // Since P2 has ALL clubs (10-14) and no one else has clubs,
+    // Since P2 holds the highest remaining cards in each suit,
     // P2 is guaranteed to win all tricks - make it rain should trigger
     const aceOfClubs = Array.from(player2.cards).find((c) => c.value === 14 && c.suit === 'clubs')!
     const result = await caller.playCard({
@@ -2520,12 +2594,12 @@ describe('Chicago: Make It Rain', () => {
         card('clubs:13'),
         card('clubs:12'),
         card('clubs:11'),
-        card('clubs:10'),
+        card('clubs:9'),
       ],
       player3: [
         card('clubs:7'),
         card('clubs:8'),
-        card('clubs:9'),
+        card('spades:9'),
         card('hearts:2'),
         card('hearts:3'),
       ],
@@ -2549,8 +2623,10 @@ describe('Chicago: Make It Rain', () => {
       for (let i = 0; i < 4; i++) {
         const player = game.currentPlayer
         const hand = Array.from(player.cards)
-        // Play lowest card to save high cards
-        const cardToPlay = hand.sort((a, b) => a.value - b.value)[0]
+        // Play the lowest card that follows suit, saving high cards
+        const leadSuit = game.round.tricks.at(-1)?.playedCards[0]?.card.suit
+        const matching = hand.filter((card) => card.suit === leadSuit)
+        const cardToPlay = (matching.length ? matching : hand).sort((a, b) => a.value - b.value)[0]
         await caller.playCard({
           gameId: game.id,
           playerSecret: player.secret,
@@ -2711,21 +2787,21 @@ describe('Chicago: Complete Game Flow', () => {
   })
 
   test('Happy path: Round with successful Chicago', async () => {
-    // P2 has A, K, Q, J, 10 of spades - guaranteed to win all tricks
+    // P2 has the top three spades plus two off-suit aces - guaranteed to win all tricks
     const chicagoWinnable: HandFixture = {
       player1: [
         card('clubs:2'),
         card('hearts:3'),
         card('diamonds:4'),
         card('clubs:5'),
-        card('hearts:6'),
+        card('hearts:7'),
       ],
       player2: [
         card('spades:14'),
         card('spades:13'),
         card('spades:12'),
-        card('spades:11'),
-        card('spades:10'),
+        card('clubs:14'),
+        card('hearts:14'),
       ],
       player3: [
         card('clubs:7'),

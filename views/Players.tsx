@@ -72,7 +72,10 @@ const Player = (props: {
   const kickPlayerMutation = trpc.kickPlayer.useMutation(mutationOptions)
   const avatarRef = useRef<HTMLDivElement>(null)
   const [floatingPoints, setFloatingPoints] = useState<number | null>(null)
-  const isGameWinner = snapshot?.gamePhase === 'over' && player.score >= 52
+  const royalWinnerId = snapshot?.events.findLast((event) => event.action === 'won_game')?.actorId
+  const isGameWinner =
+    snapshot?.gamePhase === 'over' &&
+    (royalWinnerId ? player.id === royalWinnerId : player.score >= 52)
 
   const celebratePlayer = useCallback((cb: (x: number, y: number) => void, offset = 0) => {
     const position = avatarRef.current?.getBoundingClientRect()
